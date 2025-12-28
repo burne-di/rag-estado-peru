@@ -24,8 +24,9 @@ class TestAPISmoke:
 
     @pytest.fixture
     def client(self):
-        """Cliente de test para FastAPI"""
-        return TestClient(app)
+        """Cliente de test para FastAPI con lifespan"""
+        with TestClient(app) as client:
+            yield client
 
     def test_health_endpoint(self, client):
         """GET /health responde correctamente"""
