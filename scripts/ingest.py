@@ -1,6 +1,7 @@
 """
 Script CLI para ingesta de documentos
 """
+
 import sys
 from pathlib import Path
 
@@ -21,12 +22,10 @@ def main():
         "-d",
         type=str,
         default="./data/raw",
-        help="Directorio con PDFs a ingestar (default: ./data/raw)"
+        help="Directorio con PDFs a ingestar (default: ./data/raw)",
     )
     parser.add_argument(
-        "--clear",
-        action="store_true",
-        help="Limpiar el vector store antes de ingestar"
+        "--clear", action="store_true", help="Limpiar el vector store antes de ingestar"
     )
 
     args = parser.parse_args()

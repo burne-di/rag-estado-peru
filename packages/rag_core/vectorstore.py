@@ -1,6 +1,7 @@
 """
 Vector Store - Embeddings y ChromaDB
 """
+
 from pathlib import Path
 
 import chromadb
@@ -40,9 +41,7 @@ class VectorStore:
     """ChromaDB vector store con persistencia"""
 
     def __init__(
-        self,
-        collection_name: str = "rag_documents",
-        persist_dir: str | None = None
+        self, collection_name: str = "rag_documents", persist_dir: str | None = None
     ):
         settings = get_settings()
         self.persist_dir = persist_dir or settings.chroma_persist_dir
@@ -53,8 +52,7 @@ class VectorStore:
 
         # Inicializar ChromaDB con persistencia
         self.client = chromadb.PersistentClient(
-            path=self.persist_dir,
-            settings=ChromaSettings(anonymized_telemetry=False)
+            path=self.persist_dir, settings=ChromaSettings(anonymized_telemetry=False)
         )
 
         # Obtener o crear colección con similitud coseno
@@ -63,8 +61,8 @@ class VectorStore:
             name=collection_name,
             metadata={
                 "description": "RAG Estado Peru documents",
-                "hnsw:space": "cosine"  # Usar similitud coseno
-            }
+                "hnsw:space": "cosine",  # Usar similitud coseno
+            },
         )
 
         # Modelo de embeddings
@@ -89,10 +87,7 @@ class VectorStore:
 
         # Añadir a la colección
         self.collection.add(
-            ids=ids,
-            embeddings=embeddings,
-            documents=documents,
-            metadatas=metadatas
+            ids=ids, embeddings=embeddings, documents=documents, metadatas=metadatas
         )
 
         print(f"✓ Añadidos {len(chunks)} chunks al vector store")
@@ -113,7 +108,7 @@ class VectorStore:
         results = self.collection.query(
             query_embeddings=[query_embedding],
             n_results=top_k,
-            include=["documents", "metadatas", "distances"]
+            include=["documents", "metadatas", "distances"],
         )
 
         # Formatear resultados
@@ -126,13 +121,15 @@ class VectorStore:
             # Esto da valores entre 0 (opuesto) y 1 (idéntico)
             score = max(0.0, min(1.0, 1 - distance))
 
-            formatted_results.append({
-                "chunk_id": results["ids"][0][i],
-                "content": results["documents"][0][i],
-                "metadata": results["metadatas"][0][i],
-                "distance": distance,
-                "score": score
-            })
+            formatted_results.append(
+                {
+                    "chunk_id": results["ids"][0][i],
+                    "content": results["documents"][0][i],
+                    "metadata": results["metadatas"][0][i],
+                    "distance": distance,
+                    "score": score,
+                }
+            )
 
         return formatted_results
 
@@ -147,7 +144,7 @@ class VectorStore:
             name=self.collection_name,
             metadata={
                 "description": "RAG Estado Peru documents",
-                "hnsw:space": "cosine"
-            }
+                "hnsw:space": "cosine",
+            },
         )
         print("✓ Vector store limpiado")

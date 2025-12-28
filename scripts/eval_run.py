@@ -1,6 +1,7 @@
 """
 Script para ejecutar evaluación offline del sistema RAG
 """
+
 import argparse
 import sys
 from pathlib import Path
@@ -21,31 +22,23 @@ def main():
         "-d",
         type=str,
         default=None,
-        help="Ruta al dataset JSONL (default: genera dataset de ejemplo)"
+        help="Ruta al dataset JSONL (default: genera dataset de ejemplo)",
     )
     parser.add_argument(
         "--output",
         "-o",
         type=str,
         default="./reports",
-        help="Directorio de salida para reportes"
+        help="Directorio de salida para reportes",
     )
     parser.add_argument(
-        "--top-k",
-        "-k",
-        type=int,
-        default=5,
-        help="Número de chunks a recuperar"
+        "--top-k", "-k", type=int, default=5, help="Número de chunks a recuperar"
     )
     parser.add_argument(
-        "--report",
-        action="store_true",
-        help="Generar y guardar reporte"
+        "--report", action="store_true", help="Generar y guardar reporte"
     )
     parser.add_argument(
-        "--create-sample",
-        action="store_true",
-        help="Crear dataset de ejemplo y salir"
+        "--create-sample", action="store_true", help="Crear dataset de ejemplo y salir"
     )
 
     args = parser.parse_args()
@@ -68,7 +61,7 @@ def main():
     print(f"Chunks indexados: {stats['total_chunks']}")
     print(f"Modelo: {stats['llm_model']}")
 
-    if stats['total_chunks'] == 0:
+    if stats["total_chunks"] == 0:
         print("\n⚠ No hay documentos indexados. Ejecuta primero:")
         print("  python scripts/ingest.py")
         return
@@ -109,8 +102,12 @@ def main():
     hit_ok = aggregated.hit_at_k_rate >= 0.70
     faith_ok = aggregated.avg_faithfulness >= 0.70
 
-    print(f"   Hit@K ≥ 70%:      {'✅ PASS' if hit_ok else '❌ FAIL'} ({aggregated.hit_at_k_rate:.2%})")
-    print(f"   Faithfulness ≥ 70%: {'✅ PASS' if faith_ok else '❌ FAIL'} ({aggregated.avg_faithfulness:.2%})")
+    print(
+        f"   Hit@K ≥ 70%:      {'✅ PASS' if hit_ok else '❌ FAIL'} ({aggregated.hit_at_k_rate:.2%})"
+    )
+    print(
+        f"   Faithfulness ≥ 70%: {'✅ PASS' if faith_ok else '❌ FAIL'} ({aggregated.avg_faithfulness:.2%})"
+    )
 
     overall = "✅ PASSED" if (hit_ok and faith_ok) else "❌ FAILED"
     print(f"\n🎯 Resultado General: {overall}")
@@ -121,12 +118,12 @@ def main():
         reporter = EvalReporter(
             metrics=aggregated,
             metadata={
-                "model": stats['llm_model'],
-                "embedding_model": stats['embedding_model'],
-                "chunk_size": stats['chunk_size'],
+                "model": stats["llm_model"],
+                "embedding_model": stats["embedding_model"],
+                "chunk_size": stats["chunk_size"],
                 "top_k": args.top_k,
-                "total_chunks": stats['total_chunks']
-            }
+                "total_chunks": stats["total_chunks"],
+            },
         )
         reporter.save(args.output)
 

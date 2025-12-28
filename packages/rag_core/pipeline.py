@@ -1,6 +1,7 @@
 """
 RAG Pipeline - Orquesta todo el flujo de ingesta y consulta con guardrails
 """
+
 import re
 import time
 import unicodedata
@@ -24,13 +25,13 @@ def normalize_query(text: str) -> str:
     - Limpia espacios extra
     """
     # Normalizar Unicode (NFD separa caracteres base de diacríticos)
-    text = unicodedata.normalize('NFD', text)
+    text = unicodedata.normalize("NFD", text)
     # Remover diacríticos (acentos)
-    text = ''.join(c for c in text if unicodedata.category(c) != 'Mn')
+    text = "".join(c for c in text if unicodedata.category(c) != "Mn")
     # Reemplazar signos de interrogación invertidos
-    text = text.replace('¿', '').replace('¡', '')
+    text = text.replace("¿", "").replace("¡", "")
     # Limpiar espacios múltiples
-    text = re.sub(r'\s+', ' ', text).strip()
+    text = re.sub(r"\s+", " ", text).strip()
     return text
 
 
@@ -41,7 +42,7 @@ class RAGPipeline:
         self,
         enable_guardrails: bool = True,
         enable_cache: bool = True,
-        enable_routing: bool = True
+        enable_routing: bool = True,
     ):
         self.settings = get_settings()
         self.vector_store = VectorStore()
@@ -84,7 +85,7 @@ class RAGPipeline:
         chunks = chunk_documents(
             documents,
             chunk_size=self.settings.chunk_size,
-            chunk_overlap=self.settings.chunk_overlap
+            chunk_overlap=self.settings.chunk_overlap,
         )
         print(f"   Total chunks generados: {len(chunks)}")
 
@@ -93,17 +94,19 @@ class RAGPipeline:
         added = self.vector_store.add_chunks(chunks)
 
         print("\n=== Ingesta completada ===")
-        print(f"   Documentos procesados: {len(set(d.metadata['source'] for d in documents))}")
+        print(
+            f"   Documentos procesados: {len(set(d.metadata['source'] for d in documents))}"
+        )
         print(f"   Páginas procesadas: {len(documents)}")
         print(f"   Chunks indexados: {added}")
         print(f"   Total en vector store: {self.vector_store.count()}")
 
         return {
             "status": "success",
-            "documents": len(set(d.metadata['source'] for d in documents)),
+            "documents": len(set(d.metadata["source"] for d in documents)),
             "pages": len(documents),
             "chunks": added,
-            "total_indexed": self.vector_store.count()
+            "total_indexed": self.vector_store.count(),
         }
 
     def ingest_file(self, file_path: str | Path) -> dict:
@@ -114,7 +117,7 @@ class RAGPipeline:
         chunks = chunk_documents(
             documents,
             chunk_size=self.settings.chunk_size,
-            chunk_overlap=self.settings.chunk_overlap
+            chunk_overlap=self.settings.chunk_overlap,
         )
 
         added = self.vector_store.add_chunks(chunks)
@@ -123,10 +126,12 @@ class RAGPipeline:
             "status": "success",
             "file": str(file_path),
             "pages": len(documents),
-            "chunks": added
+            "chunks": added,
         }
 
-    def query(self, question: str, top_k: int | None = None, skip_cache: bool = False) -> dict:
+    def query(
+        self, question: str, top_k: int | None = None, skip_cache: bool = False
+    ) -> dict:
         """
         Responde una pregunta usando RAG con guardrails.
 
@@ -166,13 +171,12 @@ class RAGPipeline:
         if relevant_chunks:
             scores = [c.get("score", 0) for c in relevant_chunks]
             print(f"   Scores de chunks: {[f'{s:.3f}' for s in scores]}")
-            print(f"   Score promedio: {sum(scores)/len(scores):.3f}")
+            print(f"   Score promedio: {sum(scores) / len(scores):.3f}")
 
         # 3. Evaluar política de rechazo (pre-generación)
         if self.enable_guardrails:
             refusal_result = self.refusal_policy.evaluate(
-                chunks=relevant_chunks,
-                query=question
+                chunks=relevant_chunks, query=question
             )
 
             if refusal_result.should_refuse:
@@ -182,8 +186,8 @@ class RAGPipeline:
                     "latency_ms": int((time.time() - start_time) * 1000),
                     "guardrails": {
                         "pre_refusal": True,
-                        "reason": refusal_result.reason.value
-                    }
+                        "reason": refusal_result.reason.value,
+                    },
                 }
 
         # 4. Model routing (seleccionar modelo óptimo)
@@ -196,15 +200,15 @@ class RAGPipeline:
                 "selected_model": routing_decision.model,
                 "tier": routing_decision.tier.name,
                 "complexity_score": routing_decision.complexity_score,
-                "reason": routing_decision.reason
+                "reason": routing_decision.reason,
             }
-            print(f"   🔀 Routing: {routing_decision.model} (score={routing_decision.complexity_score:.2f})")
+            print(
+                f"   🔀 Routing: {routing_decision.model} (score={routing_decision.complexity_score:.2f})"
+            )
 
         # 5. Generar respuesta
         response = self.generator.generate(
-            question,
-            relevant_chunks,
-            model_override=selected_model
+            question, relevant_chunks, model_override=selected_model
         )
 
         # Agregar info de routing
@@ -214,15 +218,14 @@ class RAGPipeline:
         # 6. Verificar grounding (post-generación)
         if self.enable_guardrails and not response.get("refusal"):
             grounding_result = self.grounding_checker.check(
-                answer=response["answer"],
-                context_chunks=relevant_chunks
+                answer=response["answer"], context_chunks=relevant_chunks
             )
 
             # Evaluar nuevamente con grounding score
             post_refusal = self.refusal_policy.evaluate(
                 chunks=relevant_chunks,
                 grounding_score=grounding_result.score,
-                query=question
+                query=question,
             )
 
             if post_refusal.should_refuse:
@@ -234,15 +237,15 @@ class RAGPipeline:
                         "grounding_score": grounding_result.score,
                         "grounding_details": grounding_result.details,
                         "ungrounded_claims": grounding_result.ungrounded_claims[:3],
-                        "post_refusal": True
-                    }
+                        "post_refusal": True,
+                    },
                 }
 
             # Agregar info de guardrails a la respuesta
             response["guardrails"] = {
                 "grounding_score": grounding_result.score,
                 "grounding_details": grounding_result.details,
-                "is_grounded": grounding_result.is_grounded
+                "is_grounded": grounding_result.is_grounded,
             }
 
         # 7. Scrub PII de la respuesta (para logs)
@@ -271,7 +274,7 @@ class RAGPipeline:
             "top_k": self.settings.top_k_results,
             "guardrails_enabled": self.enable_guardrails,
             "cache_enabled": self.enable_cache,
-            "routing_enabled": self.enable_routing
+            "routing_enabled": self.enable_routing,
         }
 
         if self.enable_cache:

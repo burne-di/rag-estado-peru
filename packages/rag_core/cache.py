@@ -2,6 +2,7 @@
 Sistema de caché para respuestas del LLM.
 Evita llamadas repetidas a la API para preguntas similares.
 """
+
 import hashlib
 import json
 import re
@@ -16,6 +17,7 @@ from typing import Optional
 @dataclass
 class CacheEntry:
     """Entrada en el caché"""
+
     question_hash: str
     question: str
     answer: dict
@@ -39,7 +41,7 @@ class ResponseCache:
         self,
         cache_dir: str = "./data/cache",
         ttl_hours: int = 24,
-        max_entries: int = 1000
+        max_entries: int = 1000,
     ):
         """
         Args:
@@ -66,12 +68,12 @@ class ResponseCache:
         # Lowercase, remover espacios extra, remover puntuación
         text = question.lower().strip()
         # Remover acentos
-        text = unicodedata.normalize('NFD', text)
-        text = ''.join(c for c in text if unicodedata.category(c) != 'Mn')
+        text = unicodedata.normalize("NFD", text)
+        text = "".join(c for c in text if unicodedata.category(c) != "Mn")
         # Remover puntuación
-        text = re.sub(r'[^\w\s]', '', text)
+        text = re.sub(r"[^\w\s]", "", text)
         # Normalizar espacios
-        text = re.sub(r'\s+', ' ', text)
+        text = re.sub(r"\s+", " ", text)
 
         return text
 
@@ -133,7 +135,7 @@ class ResponseCache:
                 question=question,
                 answer=answer,
                 timestamp=time.time(),
-                hits=0
+                hits=0,
             )
 
             self._stats["saves"] += 1
@@ -147,10 +149,7 @@ class ResponseCache:
             return
 
         # Ordenar por timestamp y eliminar el 20% más antiguo
-        sorted_entries = sorted(
-            self._cache.items(),
-            key=lambda x: x[1].timestamp
-        )
+        sorted_entries = sorted(self._cache.items(), key=lambda x: x[1].timestamp)
 
         entries_to_remove = max(1, len(sorted_entries) // 5)
 
@@ -165,7 +164,7 @@ class ResponseCache:
             return
 
         try:
-            with open(self.cache_file, 'r', encoding='utf-8') as f:
+            with open(self.cache_file, "r", encoding="utf-8") as f:
                 data = json.load(f)
 
             current_time = time.time()
@@ -190,10 +189,10 @@ class ResponseCache:
             data = {
                 "version": 1,
                 "saved_at": time.time(),
-                "entries": [asdict(entry) for entry in self._cache.values()]
+                "entries": [asdict(entry) for entry in self._cache.values()],
             }
 
-            with open(self.cache_file, 'w', encoding='utf-8') as f:
+            with open(self.cache_file, "w", encoding="utf-8") as f:
                 json.dump(data, f, ensure_ascii=False, indent=2)
 
         except IOError as e:
@@ -204,8 +203,7 @@ class ResponseCache:
         with self._lock:
             total_requests = self._stats["hits"] + self._stats["misses"]
             hit_rate = (
-                self._stats["hits"] / total_requests * 100
-                if total_requests > 0 else 0
+                self._stats["hits"] / total_requests * 100 if total_requests > 0 else 0
             )
 
             return {
@@ -214,7 +212,7 @@ class ResponseCache:
                 "misses": self._stats["misses"],
                 "saves": self._stats["saves"],
                 "hit_rate_percent": round(hit_rate, 2),
-                "estimated_savings": f"{self._stats['hits']} llamadas a API evitadas"
+                "estimated_savings": f"{self._stats['hits']} llamadas a API evitadas",
             }
 
     def clear(self) -> None:

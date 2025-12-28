@@ -1,6 +1,7 @@
 """
 Grounding Check - Verifica que la respuesta esté fundamentada en el contexto
 """
+
 import re
 from dataclasses import dataclass
 from difflib import SequenceMatcher
@@ -9,6 +10,7 @@ from difflib import SequenceMatcher
 @dataclass
 class GroundingResult:
     """Resultado del chequeo de grounding"""
+
     is_grounded: bool
     score: float  # 0.0 a 1.0
     ungrounded_claims: list[str]
@@ -25,7 +27,7 @@ class GroundingChecker:
     def __init__(
         self,
         min_similarity: float = 0.3,  # Reducido para ser menos estricto
-        min_grounding_ratio: float = 0.5  # Reducido: 50% de afirmaciones respaldadas
+        min_grounding_ratio: float = 0.5,  # Reducido: 50% de afirmaciones respaldadas
     ):
         """
         Args:
@@ -35,11 +37,7 @@ class GroundingChecker:
         self.min_similarity = min_similarity
         self.min_grounding_ratio = min_grounding_ratio
 
-    def check(
-        self,
-        answer: str,
-        context_chunks: list[dict]
-    ) -> GroundingResult:
+    def check(self, answer: str, context_chunks: list[dict]) -> GroundingResult:
         """
         Verifica si la respuesta está fundamentada en el contexto.
 
@@ -59,7 +57,7 @@ class GroundingChecker:
                 score=1.0,
                 ungrounded_claims=[],
                 evidence_found=[],
-                details="No se encontraron afirmaciones verificables"
+                details="No se encontraron afirmaciones verificables",
             )
 
         # Combinar todo el contexto
@@ -93,7 +91,7 @@ class GroundingChecker:
             score=grounding_ratio,
             ungrounded_claims=ungrounded_claims,
             evidence_found=evidence_found,
-            details=f"{len(grounded_claims)}/{len(claims)} afirmaciones respaldadas"
+            details=f"{len(grounded_claims)}/{len(claims)} afirmaciones respaldadas",
         )
 
     def _extract_claims(self, text: str) -> list[str]:
@@ -102,7 +100,7 @@ class GroundingChecker:
         Divide en oraciones y filtra las que parecen afirmaciones.
         """
         # Dividir en oraciones
-        sentences = re.split(r'[.!?]\s+', text)
+        sentences = re.split(r"[.!?]\s+", text)
 
         claims = []
         for sentence in sentences:
@@ -110,18 +108,18 @@ class GroundingChecker:
             # Filtrar oraciones muy cortas o que son preguntas
             if len(sentence) < 20:
                 continue
-            if sentence.endswith('?'):
+            if sentence.endswith("?"):
                 continue
             # Filtrar frases de cortesía/conexión
             skip_patterns = [
-                r'^según los documentos',
-                r'^de acuerdo con',
-                r'^en resumen',
-                r'^en conclusión',
-                r'^cabe mencionar',
-                r'^es importante',
-                r'^no encontré',
-                r'^no tengo información',
+                r"^según los documentos",
+                r"^de acuerdo con",
+                r"^en resumen",
+                r"^en conclusión",
+                r"^cabe mencionar",
+                r"^es importante",
+                r"^no encontré",
+                r"^no tengo información",
             ]
             if any(re.match(p, sentence.lower()) for p in skip_patterns):
                 continue
@@ -131,10 +129,7 @@ class GroundingChecker:
         return claims
 
     def _check_claim(
-        self,
-        claim: str,
-        full_context: str,
-        chunks: list[dict]
+        self, claim: str, full_context: str, chunks: list[dict]
     ) -> tuple[bool, float, dict | None]:
         """
         Verifica si una afirmación está respaldada por el contexto.
@@ -177,7 +172,7 @@ class GroundingChecker:
                 "source": best_chunk.get("metadata", {}).get("source", "unknown"),
                 "page": best_chunk.get("metadata", {}).get("page"),
                 "similarity": best_similarity,
-                "excerpt": best_chunk.get("content", "")[:150]
+                "excerpt": best_chunk.get("content", "")[:150],
             }
 
         return is_supported, combined_score, evidence
@@ -186,20 +181,54 @@ class GroundingChecker:
         """Extrae frases clave (sustantivos, números, términos técnicos)"""
         # Eliminar stopwords comunes
         stopwords = {
-            'el', 'la', 'los', 'las', 'un', 'una', 'unos', 'unas',
-            'de', 'del', 'al', 'a', 'en', 'con', 'por', 'para',
-            'que', 'se', 'es', 'son', 'como', 'más', 'pero', 'si',
-            'su', 'sus', 'este', 'esta', 'estos', 'estas', 'ese',
-            'y', 'o', 'e', 'u', 'ni', 'no', 'sí', 'también'
+            "el",
+            "la",
+            "los",
+            "las",
+            "un",
+            "una",
+            "unos",
+            "unas",
+            "de",
+            "del",
+            "al",
+            "a",
+            "en",
+            "con",
+            "por",
+            "para",
+            "que",
+            "se",
+            "es",
+            "son",
+            "como",
+            "más",
+            "pero",
+            "si",
+            "su",
+            "sus",
+            "este",
+            "esta",
+            "estos",
+            "estas",
+            "ese",
+            "y",
+            "o",
+            "e",
+            "u",
+            "ni",
+            "no",
+            "sí",
+            "también",
         }
 
-        words = re.findall(r'\b\w{3,}\b', text.lower())
+        words = re.findall(r"\b\w{3,}\b", text.lower())
         key_words = [w for w in words if w not in stopwords]
 
         # Crear n-gramas (2-3 palabras)
         phrases = []
         for i in range(len(key_words) - 1):
-            phrases.append(f"{key_words[i]} {key_words[i+1]}")
+            phrases.append(f"{key_words[i]} {key_words[i + 1]}")
 
         # Agregar palabras individuales importantes
         phrases.extend(key_words[:5])
@@ -215,7 +244,7 @@ class GroundingChecker:
             best_ratio = 0.0
 
             for i in range(0, len(text2) - window_size + 1, 100):
-                window = text2[i:i + window_size]
+                window = text2[i : i + window_size]
                 ratio = SequenceMatcher(None, text1, window).ratio()
                 best_ratio = max(best_ratio, ratio)
 

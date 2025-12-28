@@ -1,6 +1,7 @@
 """
 Script CLI para hacer consultas RAG
 """
+
 import sys
 from pathlib import Path
 
@@ -13,27 +14,17 @@ from packages.rag_core import RAGPipeline
 
 
 def main():
-    parser = argparse.ArgumentParser(
-        description="Realiza consultas al sistema RAG"
-    )
+    parser = argparse.ArgumentParser(description="Realiza consultas al sistema RAG")
+    parser.add_argument("question", type=str, nargs="?", help="Pregunta a realizar")
     parser.add_argument(
-        "question",
-        type=str,
-        nargs="?",
-        help="Pregunta a realizar"
-    )
-    parser.add_argument(
-        "--interactive",
-        "-i",
-        action="store_true",
-        help="Modo interactivo"
+        "--interactive", "-i", action="store_true", help="Modo interactivo"
     )
     parser.add_argument(
         "--top-k",
         "-k",
         type=int,
         default=5,
-        help="Número de chunks a recuperar (default: 5)"
+        help="Número de chunks a recuperar (default: 5)",
     )
 
     args = parser.parse_args()
@@ -44,7 +35,7 @@ def main():
     print(f"RAG Estado Peru - {stats['total_chunks']} chunks indexados")
     print("-" * 50)
 
-    if stats['total_chunks'] == 0:
+    if stats["total_chunks"] == 0:
         print("⚠ No hay documentos indexados. Ejecuta primero:")
         print("  python scripts/ingest.py")
         return
@@ -53,7 +44,7 @@ def main():
         print("Modo interactivo. Escribe 'salir' para terminar.\n")
         while True:
             question = input("\n📝 Tu pregunta: ").strip()
-            if question.lower() in ['salir', 'exit', 'quit']:
+            if question.lower() in ["salir", "exit", "quit"]:
                 print("¡Hasta luego!")
                 break
             if not question:
@@ -81,9 +72,11 @@ def process_question(pipeline: RAGPipeline, question: str, top_k: int):
     print("-" * 50)
 
     for i, citation in enumerate(result.get("citations", []), 1):
-        print(f"\n[{i}] {citation.get('source', 'Desconocido')} - Página {citation.get('page', '?')}")
+        print(
+            f"\n[{i}] {citation.get('source', 'Desconocido')} - Página {citation.get('page', '?')}"
+        )
         print(f"    Relevancia: {citation.get('relevance_score', 0):.2%}")
-        excerpt = citation.get('excerpt', citation.get('text', ''))
+        excerpt = citation.get("excerpt", citation.get("text", ""))
         if excerpt:
             print(f"    Extracto: {excerpt[:150]}...")
 

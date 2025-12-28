@@ -11,6 +11,7 @@ Criterios de complejidad:
 - Número de conceptos/entidades
 - Presencia de comparaciones, análisis, etc.
 """
+
 import re
 from dataclasses import dataclass
 from enum import Enum
@@ -18,13 +19,15 @@ from enum import Enum
 
 class ModelTier(Enum):
     """Niveles de modelo disponibles"""
-    LITE = "gemini-2.0-flash-lite"    # Rápido, económico
-    STANDARD = "gemini-2.5-flash"      # Balanceado (default actual)
+
+    LITE = "gemini-2.0-flash-lite"  # Rápido, económico
+    STANDARD = "gemini-2.5-flash"  # Balanceado (default actual)
 
 
 @dataclass
 class RoutingDecision:
     """Resultado del routing"""
+
     model: str
     tier: ModelTier
     complexity_score: float  # 0.0 a 1.0
@@ -40,40 +43,35 @@ class ModelRouter:
     # Palabras que indican queries complejas
     COMPLEX_INDICATORS = [
         # Análisis profundo
-        r'\b(analiza|analizar|análisis|compara|comparar|comparación)\b',
-        r'\b(diferencia|diferencias|similitud|similitudes)\b',
-        r'\b(ventajas?|desventajas?|pros?|contras?)\b',
-        r'\b(implicaciones?|consecuencias?|efectos?)\b',
-
+        r"\b(analiza|analizar|análisis|compara|comparar|comparación)\b",
+        r"\b(diferencia|diferencias|similitud|similitudes)\b",
+        r"\b(ventajas?|desventajas?|pros?|contras?)\b",
+        r"\b(implicaciones?|consecuencias?|efectos?)\b",
         # Razonamiento
-        r'\b(por qué|porque|razón|razones|motivo|motivos)\b',
-        r'\b(cómo funciona|cómo se|de qué manera)\b',
-        r'\b(explica|explicar|explicación|detalla|detallar)\b',
-
+        r"\b(por qué|porque|razón|razones|motivo|motivos)\b",
+        r"\b(cómo funciona|cómo se|de qué manera)\b",
+        r"\b(explica|explicar|explicación|detalla|detallar)\b",
         # Múltiples elementos
-        r'\b(todos los|todas las|cuáles son|enumera|lista)\b',
-        r'\b(requisitos|condiciones|pasos|procedimiento)\b',
-
+        r"\b(todos los|todas las|cuáles son|enumera|lista)\b",
+        r"\b(requisitos|condiciones|pasos|procedimiento)\b",
         # Legal/técnico complejo
-        r'\b(jurisprudencia|doctrina|interpretación)\b',
-        r'\b(excepciones?|casos especiales|supuestos)\b',
-        r'\b(artículo \d+|inciso|literal|numeral)\b',
+        r"\b(jurisprudencia|doctrina|interpretación)\b",
+        r"\b(excepciones?|casos especiales|supuestos)\b",
+        r"\b(artículo \d+|inciso|literal|numeral)\b",
     ]
 
     # Palabras que indican queries simples
     SIMPLE_INDICATORS = [
-        r'\b(qué es|que es|definición|define)\b',
-        r'\b(cuándo|cuando|fecha|plazo)\b',
-        r'\b(dónde|donde|lugar)\b',
-        r'\b(cuánto|cuanto|monto|cantidad)\b',
-        r'\b(quién|quien|responsable)\b',
-        r'^(es|son|está|hay)\b',
+        r"\b(qué es|que es|definición|define)\b",
+        r"\b(cuándo|cuando|fecha|plazo)\b",
+        r"\b(dónde|donde|lugar)\b",
+        r"\b(cuánto|cuanto|monto|cantidad)\b",
+        r"\b(quién|quien|responsable)\b",
+        r"^(es|son|está|hay)\b",
     ]
 
     def __init__(
-        self,
-        complexity_threshold: float = 0.5,
-        default_model: str = "gemini-2.5-flash"
+        self, complexity_threshold: float = 0.5, default_model: str = "gemini-2.5-flash"
     ):
         """
         Args:
@@ -91,7 +89,9 @@ class ModelRouter:
             re.compile(p, re.IGNORECASE) for p in self.SIMPLE_INDICATORS
         ]
 
-    def route(self, query: str, context_chunks: list[dict] | None = None) -> RoutingDecision:
+    def route(
+        self, query: str, context_chunks: list[dict] | None = None
+    ) -> RoutingDecision:
         """
         Determina qué modelo usar para una query.
 
@@ -109,20 +109,18 @@ class ModelRouter:
                 model=ModelTier.STANDARD.value,
                 tier=ModelTier.STANDARD,
                 complexity_score=complexity_score,
-                reason=self._get_complexity_reason(query, complexity_score)
+                reason=self._get_complexity_reason(query, complexity_score),
             )
         else:
             return RoutingDecision(
                 model=ModelTier.LITE.value,
                 tier=ModelTier.LITE,
                 complexity_score=complexity_score,
-                reason="Query simple, usando modelo lite"
+                reason="Query simple, usando modelo lite",
             )
 
     def _calculate_complexity(
-        self,
-        query: str,
-        context_chunks: list[dict] | None = None
+        self, query: str, context_chunks: list[dict] | None = None
     ) -> float:
         """
         Calcula un score de complejidad para la query.

@@ -1,12 +1,14 @@
 """
 Refusal Policy - Política de rechazo cuando no hay evidencia suficiente
 """
+
 from dataclasses import dataclass
 from enum import Enum
 
 
 class RefusalReason(Enum):
     """Razones de rechazo"""
+
     NO_CONTEXT = "no_context"
     LOW_RELEVANCE = "low_relevance"
     UNGROUNDED = "ungrounded"
@@ -18,6 +20,7 @@ class RefusalReason(Enum):
 @dataclass
 class RefusalResult:
     """Resultado de la evaluación de refusal"""
+
     should_refuse: bool
     reason: RefusalReason
     message: str
@@ -66,7 +69,7 @@ class RefusalPolicy:
         self,
         min_relevance_score: float = 0.1,  # Bajado para ser menos estricto
         min_grounding_score: float = 0.3,  # Bajado para ser menos estricto
-        min_chunks_required: int = 1
+        min_chunks_required: int = 1,
     ):
         """
         Args:
@@ -82,7 +85,7 @@ class RefusalPolicy:
         self,
         chunks: list[dict],
         grounding_score: float | None = None,
-        query: str | None = None
+        query: str | None = None,
     ) -> RefusalResult:
         """
         Evalúa si se debe rechazar la respuesta.
@@ -101,7 +104,7 @@ class RefusalPolicy:
                 should_refuse=True,
                 reason=RefusalReason.NO_CONTEXT,
                 message=REFUSAL_MESSAGES[RefusalReason.NO_CONTEXT],
-                suggestion=SUGGESTIONS[RefusalReason.NO_CONTEXT]
+                suggestion=SUGGESTIONS[RefusalReason.NO_CONTEXT],
             )
 
         # Check 2: ¿Los chunks son relevantes?
@@ -111,7 +114,7 @@ class RefusalPolicy:
                 should_refuse=True,
                 reason=RefusalReason.LOW_RELEVANCE,
                 message=REFUSAL_MESSAGES[RefusalReason.LOW_RELEVANCE],
-                suggestion=SUGGESTIONS[RefusalReason.LOW_RELEVANCE]
+                suggestion=SUGGESTIONS[RefusalReason.LOW_RELEVANCE],
             )
 
         # Check 3: ¿La respuesta está grounded?
@@ -120,7 +123,7 @@ class RefusalPolicy:
                 should_refuse=True,
                 reason=RefusalReason.UNGROUNDED,
                 message=REFUSAL_MESSAGES[RefusalReason.UNGROUNDED],
-                suggestion=SUGGESTIONS[RefusalReason.UNGROUNDED]
+                suggestion=SUGGESTIONS[RefusalReason.UNGROUNDED],
             )
 
         # Check 4: ¿La query es válida?
@@ -129,15 +132,12 @@ class RefusalPolicy:
                 should_refuse=True,
                 reason=RefusalReason.OFF_TOPIC,
                 message=REFUSAL_MESSAGES[RefusalReason.OFF_TOPIC],
-                suggestion=SUGGESTIONS[RefusalReason.OFF_TOPIC]
+                suggestion=SUGGESTIONS[RefusalReason.OFF_TOPIC],
             )
 
         # Todo OK - no rechazar
         return RefusalResult(
-            should_refuse=False,
-            reason=RefusalReason.NONE,
-            message="",
-            suggestion=None
+            should_refuse=False, reason=RefusalReason.NONE, message="", suggestion=None
         )
 
     def _is_off_topic(self, query: str) -> bool:
@@ -167,5 +167,5 @@ class RefusalPolicy:
             "confidence": 0.0,
             "refusal": True,
             "refusal_reason": result.reason.value,
-            "suggestion": result.suggestion
+            "suggestion": result.suggestion,
         }

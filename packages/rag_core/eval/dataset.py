@@ -1,6 +1,7 @@
 """
 Dataset de evaluación para RAG
 """
+
 import json
 from dataclasses import asdict, dataclass
 from pathlib import Path
@@ -10,6 +11,7 @@ from typing import Optional
 @dataclass
 class EvalItem:
     """Un item de evaluación"""
+
     question: str
     expected_sources: list[str]  # IDs de fuentes esperadas
     gold_answer: Optional[str] = None  # Respuesta esperada (opcional)
@@ -45,9 +47,9 @@ class EvalDataset:
         path = Path(path)
         path.parent.mkdir(parents=True, exist_ok=True)
 
-        with open(path, 'w', encoding='utf-8') as f:
+        with open(path, "w", encoding="utf-8") as f:
             for item in self.items:
-                f.write(json.dumps(item.to_dict(), ensure_ascii=False) + '\n')
+                f.write(json.dumps(item.to_dict(), ensure_ascii=False) + "\n")
 
     @classmethod
     def load(cls, path: str | Path) -> "EvalDataset":
@@ -57,7 +59,7 @@ class EvalDataset:
             raise FileNotFoundError(f"Dataset no encontrado: {path}")
 
         items = []
-        with open(path, 'r', encoding='utf-8') as f:
+        with open(path, "r", encoding="utf-8") as f:
             for line in f:
                 line = line.strip()
                 if line:
@@ -75,32 +77,32 @@ class EvalDataset:
                 expected_sources=["Codigo-Tributario-Sunat.pdf"],
                 gold_answer="El Código Tributario es el marco legal que regula las relaciones entre el contribuyente y la Administración Tributaria.",
                 category="definicion",
-                difficulty="easy"
+                difficulty="easy",
             ),
             EvalItem(
                 question="¿Cuál es el plazo para presentar una reclamación tributaria?",
                 expected_sources=["Codigo-Tributario-Sunat.pdf"],
                 gold_answer="El plazo para presentar una reclamación tributaria es de 20 días hábiles.",
                 category="plazos",
-                difficulty="medium"
+                difficulty="medium",
             ),
             EvalItem(
                 question="¿Qué obligaciones tienen los contribuyentes?",
                 expected_sources=["Codigo-Tributario-Sunat.pdf"],
                 category="obligaciones",
-                difficulty="medium"
+                difficulty="medium",
             ),
             EvalItem(
                 question="¿Cuándo prescribe la acción para determinar la obligación tributaria?",
                 expected_sources=["Codigo-Tributario-Sunat.pdf"],
                 category="prescripcion",
-                difficulty="hard"
+                difficulty="hard",
             ),
             EvalItem(
                 question="¿Qué es la SUNAT?",
                 expected_sources=["Codigo-Tributario-Sunat.pdf"],
                 category="instituciones",
-                difficulty="easy"
+                difficulty="easy",
             ),
         ]
         return cls(items)
@@ -134,5 +136,5 @@ class EvalDataset:
             "total_items": len(self.items),
             "with_gold_answer": sum(1 for i in self.items if i.gold_answer),
             "categories": categories,
-            "difficulties": difficulties
+            "difficulties": difficulties,
         }

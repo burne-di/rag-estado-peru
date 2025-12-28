@@ -1,6 +1,7 @@
 """
 Text Chunker - División de documentos en chunks con metadata
 """
+
 import uuid
 from dataclasses import dataclass
 
@@ -10,6 +11,7 @@ from .loaders import Document
 @dataclass
 class Chunk:
     """Representa un chunk de texto con su metadata"""
+
     chunk_id: str
     content: str
     metadata: dict
@@ -25,7 +27,7 @@ class TextChunker:
         self,
         chunk_size: int = 512,
         chunk_overlap: int = 50,
-        length_function: callable = len
+        length_function: callable = len,
     ):
         self.chunk_size = chunk_size
         self.chunk_overlap = chunk_overlap
@@ -48,7 +50,7 @@ class TextChunker:
             # Intentar cortar en un espacio para no partir palabras
             if end < len(text):
                 # Buscar el último espacio antes del límite
-                last_space = text.rfind(' ', start, end)
+                last_space = text.rfind(" ", start, end)
                 if last_space > start:
                     end = last_space
 
@@ -63,7 +65,7 @@ class TextChunker:
                         "chunk_index": chunk_index,
                         "chunk_start": start,
                         "chunk_end": end,
-                    }
+                    },
                 )
                 chunks.append(chunk)
                 chunk_index += 1
@@ -95,9 +97,7 @@ class TextChunker:
 
 
 def chunk_documents(
-    documents: list[Document],
-    chunk_size: int = 512,
-    chunk_overlap: int = 50
+    documents: list[Document], chunk_size: int = 512, chunk_overlap: int = 50
 ) -> list[Chunk]:
     """
     Función de conveniencia para dividir documentos en chunks

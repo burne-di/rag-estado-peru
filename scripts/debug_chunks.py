@@ -1,4 +1,5 @@
 """Debug script para ver contenido de chunks"""
+
 import sys
 from pathlib import Path
 
@@ -14,5 +15,5 @@ print(f"Query: {query}\n")
 for i, r in enumerate(results, 1):
     print(f"=== CHUNK {i} (score: {r['score']:.3f}) ===")
     print(f"Página: {r['metadata'].get('page')}")
-    print(r['content'][:800])
+    print(r["content"][:800])
     print()

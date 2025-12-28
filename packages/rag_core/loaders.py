@@ -1,6 +1,7 @@
 """
 Document Loaders - Carga y extracción de texto de PDFs y HTML
 """
+
 import hashlib
 import re
 from dataclasses import dataclass
@@ -15,6 +16,7 @@ from bs4 import BeautifulSoup
 @dataclass
 class Document:
     """Representa un documento cargado"""
+
     content: str
     metadata: dict
 
@@ -59,7 +61,7 @@ class PDFLoader:
                             "source_type": "pdf",
                             "page": page_num,
                             "total_pages": total_pages,
-                        }
+                        },
                     )
                     documents.append(doc)
 
@@ -68,9 +70,9 @@ class PDFLoader:
     def _clean_text(self, text: str) -> str:
         """Limpieza básica del texto extraído"""
         # Normalizar espacios múltiples
-        text = re.sub(r'\s+', ' ', text)
+        text = re.sub(r"\s+", " ", text)
         # Eliminar caracteres de control
-        text = re.sub(r'[\x00-\x08\x0b\x0c\x0e-\x1f\x7f]', '', text)
+        text = re.sub(r"[\x00-\x08\x0b\x0c\x0e-\x1f\x7f]", "", text)
         return text.strip()
 
 
@@ -78,12 +80,38 @@ class HTMLLoader:
     """Carga documentos HTML (archivo local o URL) y extrae texto"""
 
     # Tags a ignorar
-    IGNORE_TAGS = {'script', 'style', 'meta', 'link', 'noscript', 'header',
-                   'footer', 'nav', 'aside', 'form', 'button', 'input'}
+    IGNORE_TAGS = {
+        "script",
+        "style",
+        "meta",
+        "link",
+        "noscript",
+        "header",
+        "footer",
+        "nav",
+        "aside",
+        "form",
+        "button",
+        "input",
+    }
 
     # Tags que indican secciones importantes
-    CONTENT_TAGS = {'article', 'main', 'section', 'div', 'p', 'h1', 'h2',
-                    'h3', 'h4', 'h5', 'h6', 'li', 'td', 'th'}
+    CONTENT_TAGS = {
+        "article",
+        "main",
+        "section",
+        "div",
+        "p",
+        "h1",
+        "h2",
+        "h3",
+        "h4",
+        "h5",
+        "h6",
+        "li",
+        "td",
+        "th",
+    }
 
     def __init__(self, source: str, is_url: bool = False):
         """
@@ -98,7 +126,7 @@ class HTMLLoader:
         """Detecta si el source es una URL"""
         try:
             result = urlparse(source)
-            return all([result.scheme in ('http', 'https'), result.netloc])
+            return all([result.scheme in ("http", "https"), result.netloc])
         except (ValueError, AttributeError):
             return False
 
@@ -117,7 +145,7 @@ class HTMLLoader:
             return []
 
         # Parsear y extraer texto
-        soup = BeautifulSoup(html_content, 'lxml')
+        soup = BeautifulSoup(html_content, "lxml")
 
         # Extraer metadata
         title = self._extract_title(soup)
@@ -141,7 +169,7 @@ class HTMLLoader:
                     "source_type": "html",
                     "title": title,
                     "section": None,
-                }
+                },
             )
             documents = [doc]
 
@@ -150,9 +178,7 @@ class HTMLLoader:
     def _fetch_url(self) -> str | None:
         """Descarga contenido de una URL"""
         try:
-            headers = {
-                'User-Agent': 'Mozilla/5.0 (compatible; RAGBot/1.0)'
-            }
+            headers = {"User-Agent": "Mozilla/5.0 (compatible; RAGBot/1.0)"}
             response = requests.get(self.source, headers=headers, timeout=30)
             response.raise_for_status()
             response.encoding = response.apparent_encoding
@@ -169,13 +195,13 @@ class HTMLLoader:
                 raise FileNotFoundError(f"Archivo no encontrado: {self.source}")
 
             # Intentar diferentes encodings
-            for encoding in ['utf-8', 'latin-1', 'cp1252']:
+            for encoding in ["utf-8", "latin-1", "cp1252"]:
                 try:
                     return path.read_text(encoding=encoding)
                 except UnicodeDecodeError:
                     continue
 
-            return path.read_text(errors='ignore')
+            return path.read_text(errors="ignore")
         except Exception as e:
             print(f"Error leyendo {self.source}: {e}")
             return None
@@ -183,12 +209,12 @@ class HTMLLoader:
     def _extract_title(self, soup: BeautifulSoup) -> str | None:
         """Extrae el título del documento"""
         # Intentar tag title
-        title_tag = soup.find('title')
+        title_tag = soup.find("title")
         if title_tag and title_tag.string:
             return title_tag.string.strip()
 
         # Intentar h1
-        h1_tag = soup.find('h1')
+        h1_tag = soup.find("h1")
         if h1_tag:
             return h1_tag.get_text(strip=True)
 
@@ -201,12 +227,12 @@ class HTMLLoader:
             tag.decompose()
 
         # Intentar encontrar contenido principal
-        main_content = soup.find('main') or soup.find('article') or soup.find('body')
+        main_content = soup.find("main") or soup.find("article") or soup.find("body")
 
         if main_content:
-            text = main_content.get_text(separator=' ', strip=True)
+            text = main_content.get_text(separator=" ", strip=True)
         else:
-            text = soup.get_text(separator=' ', strip=True)
+            text = soup.get_text(separator=" ", strip=True)
 
         # Limpiar texto
         text = self._clean_text(text)
@@ -215,11 +241,11 @@ class HTMLLoader:
     def _clean_text(self, text: str) -> str:
         """Limpia el texto extraído"""
         # Normalizar espacios
-        text = re.sub(r'\s+', ' ', text)
+        text = re.sub(r"\s+", " ", text)
         # Eliminar caracteres especiales problemáticos
-        text = re.sub(r'[\x00-\x08\x0b\x0c\x0e-\x1f\x7f]', '', text)
+        text = re.sub(r"[\x00-\x08\x0b\x0c\x0e-\x1f\x7f]", "", text)
         # Eliminar secuencias de caracteres repetidos excesivos
-        text = re.sub(r'(.)\1{10,}', r'\1\1\1', text)
+        text = re.sub(r"(.)\1{10,}", r"\1\1\1", text)
         return text.strip()
 
     def _split_by_sections(self, soup: BeautifulSoup, full_text: str) -> list[Document]:
@@ -227,7 +253,7 @@ class HTMLLoader:
         documents = []
 
         # Buscar encabezados como divisores de sección
-        headings = soup.find_all(['h1', 'h2', 'h3'])
+        headings = soup.find_all(["h1", "h2", "h3"])
 
         if len(headings) < 2:
             return []  # No hay suficientes secciones
@@ -238,13 +264,13 @@ class HTMLLoader:
             # Obtener contenido hasta el siguiente heading
             content_parts = []
             for sibling in heading.find_next_siblings():
-                if sibling.name in ['h1', 'h2', 'h3']:
+                if sibling.name in ["h1", "h2", "h3"]:
                     break
                 text = sibling.get_text(strip=True)
                 if text:
                     content_parts.append(text)
 
-            section_content = ' '.join(content_parts)
+            section_content = " ".join(content_parts)
 
             if section_content and len(section_content) > 50:
                 doc = Document(
@@ -255,7 +281,7 @@ class HTMLLoader:
                         "source_type": "html",
                         "section": section_title,
                         "section_index": i + 1,
-                    }
+                    },
                 )
                 documents.append(doc)
 

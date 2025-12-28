@@ -1,6 +1,7 @@
 """
 Script para probar el pipeline completo
 """
+
 import sys
 from pathlib import Path
 
@@ -28,7 +29,7 @@ def main():
     print(f"   - Modelo LLM: {stats['llm_model']}")
 
     # 3. Ingestar documentos si está vacío
-    if stats['total_chunks'] == 0:
+    if stats["total_chunks"] == 0:
         print("\n3. Ingesta de documentos...")
         result = pipeline.ingest_directory("./data/raw")
         if result["status"] == "success":

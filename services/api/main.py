@@ -1,6 +1,7 @@
 """
 FastAPI Application - RAG Estado Peru API
 """
+
 import asyncio
 import json
 import sys
@@ -86,8 +87,7 @@ async def query(request: QueryRequest):
 
     if pipeline.get_stats()["total_chunks"] == 0:
         raise HTTPException(
-            status_code=400,
-            detail="No hay documentos indexados. Use /ingest primero."
+            status_code=400, detail="No hay documentos indexados. Use /ingest primero."
         )
 
     try:
@@ -99,7 +99,7 @@ async def query(request: QueryRequest):
                 source=c.get("source", "Desconocido"),
                 page=c.get("page"),
                 quote=c.get("quote", c.get("excerpt", "")),
-                relevance_score=c.get("relevance_score", 0)
+                relevance_score=c.get("relevance_score", 0),
             )
             for c in result.get("citations", [])
         ]
@@ -111,7 +111,7 @@ async def query(request: QueryRequest):
             model=result.get("model"),
             confidence=result.get("confidence"),
             latency_ms=result.get("latency_ms"),
-            from_cache=result.get("from_cache", False)
+            from_cache=result.get("from_cache", False),
         )
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
@@ -134,14 +134,14 @@ async def query_stream(request: QueryRequest):
 
     if pipeline.get_stats()["total_chunks"] == 0:
         raise HTTPException(
-            status_code=400,
-            detail="No hay documentos indexados. Use /ingest primero."
+            status_code=400, detail="No hay documentos indexados. Use /ingest primero."
         )
 
     async def generate():
         try:
             # Primero verificar caché
             from packages.rag_core.pipeline import normalize_query
+
             normalized = normalize_query(request.question)
 
             if pipeline.enable_cache:
@@ -154,22 +154,21 @@ async def query_stream(request: QueryRequest):
 
             # Obtener chunks relevantes
             relevant_chunks = pipeline.vector_store.search(
-                normalized,
-                top_k=request.top_k or pipeline.settings.top_k_results
+                normalized, top_k=request.top_k or pipeline.settings.top_k_results
             )
 
             # Hacer routing si está habilitado
             model_override = None
             if pipeline.enable_routing:
-                routing_decision = pipeline.router.route(request.question, relevant_chunks)
+                routing_decision = pipeline.router.route(
+                    request.question, relevant_chunks
+                )
                 model_override = routing_decision.model
                 yield f"data: {json.dumps({'type': 'routing', 'model': model_override})}\n\n"
 
             # Generar con streaming
             stream = pipeline.generator.generate_stream(
-                request.question,
-                relevant_chunks,
-                model_override=model_override
+                request.question, relevant_chunks, model_override=model_override
             )
 
             full_response = ""
@@ -197,7 +196,7 @@ async def query_stream(request: QueryRequest):
         headers={
             "Cache-Control": "no-cache",
             "Connection": "keep-alive",
-        }
+        },
     )
 
 
@@ -218,8 +217,7 @@ async def ingest(request: IngestRequest):
             result = pipeline.ingest_file(request.file_path)
         else:
             raise HTTPException(
-                status_code=400,
-                detail="Debe especificar 'directory' o 'file_path'"
+                status_code=400, detail="Debe especificar 'directory' o 'file_path'"
             )
 
         return IngestResponse(**result)
@@ -260,9 +258,4 @@ if __name__ == "__main__":
     from packages.rag_core.config import get_settings
 
     settings = get_settings()
-    uvicorn.run(
-        "main:app",
-        host=settings.api_host,
-        port=settings.api_port,
-        reload=True
-    )
+    uvicorn.run("main:app", host=settings.api_host, port=settings.api_port, reload=True)

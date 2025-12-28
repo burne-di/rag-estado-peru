@@ -1,6 +1,7 @@
 """
 Métricas de evaluación RAG
 """
+
 from dataclasses import dataclass, field
 from typing import Optional
 
@@ -8,6 +9,7 @@ from typing import Optional
 @dataclass
 class MetricsResult:
     """Resultado de métricas para un item"""
+
     question: str
     hit_at_k: bool  # ¿Fuente esperada en top-k?
     retrieval_precision: float  # Precisión de retrieval
@@ -39,6 +41,7 @@ class MetricsResult:
 @dataclass
 class AggregatedMetrics:
     """Métricas agregadas del dataset"""
+
     total_items: int = 0
     hit_at_k_rate: float = 0.0
     avg_precision: float = 0.0
@@ -81,7 +84,7 @@ class RAGMetrics:
         question: str,
         expected_sources: list[str],
         gold_answer: Optional[str] = None,
-        top_k: int = 5
+        top_k: int = 5,
     ) -> MetricsResult:
         """
         Evalúa un item individual.
@@ -107,17 +110,22 @@ class RAGMetrics:
 
         # Calcular Hit@K
         hit_at_k = any(
-            any(exp.lower() in src.lower() or src.lower() in exp.lower()
-                for src in sources_retrieved)
+            any(
+                exp.lower() in src.lower() or src.lower() in exp.lower()
+                for src in sources_retrieved
+            )
             for exp in expected_sources
         )
 
         # Calcular Precision y Recall
         if sources_retrieved and expected_sources:
             matches = sum(
-                1 for src in sources_retrieved
-                if any(exp.lower() in src.lower() or src.lower() in exp.lower()
-                       for exp in expected_sources)
+                1
+                for src in sources_retrieved
+                if any(
+                    exp.lower() in src.lower() or src.lower() in exp.lower()
+                    for exp in expected_sources
+                )
             )
             precision = matches / len(sources_retrieved)
             recall = matches / len(expected_sources)
@@ -144,7 +152,7 @@ class RAGMetrics:
             sources_expected=expected_sources,
             grounding_score=guardrails.get("grounding_score", 0.0),
             confidence=result.get("confidence", 0.0),
-            was_refusal=result.get("refusal", False)
+            was_refusal=result.get("refusal", False),
         )
 
     def evaluate_dataset(self, dataset, top_k: int = 5) -> AggregatedMetrics:
@@ -166,7 +174,7 @@ class RAGMetrics:
                 question=item.question,
                 expected_sources=item.expected_sources,
                 gold_answer=item.gold_answer,
-                top_k=top_k
+                top_k=top_k,
             )
             results.append(result)
 
@@ -187,5 +195,5 @@ class RAGMetrics:
             avg_grounding_score=sum(r.grounding_score for r in results) / n,
             avg_confidence=sum(r.confidence for r in results) / n,
             refusal_rate=sum(1 for r in results if r.was_refusal) / n,
-            results=results
+            results=results,
         )

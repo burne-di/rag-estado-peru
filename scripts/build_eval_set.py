@@ -1,6 +1,7 @@
 """
 Script para construir dataset de evaluación de forma interactiva
 """
+
 import sys
 from pathlib import Path
 
@@ -22,7 +23,7 @@ def main():
     if output_path.exists():
         print(f"Dataset existente encontrado: {output_path}")
         choice = input("¿Agregar items (a) o crear nuevo (n)? [a/n]: ").strip().lower()
-        if choice == 'a':
+        if choice == "a":
             dataset = EvalDataset.load(output_path)
             print(f"Cargado dataset con {len(dataset)} items existentes")
         else:
@@ -35,14 +36,21 @@ def main():
     print("\nIngresa los items de evaluación.")
     print("Escribe 'done' cuando termines.\n")
 
-    categories = ["definicion", "plazos", "obligaciones", "procedimientos", "instituciones", "otro"]
+    categories = [
+        "definicion",
+        "plazos",
+        "obligaciones",
+        "procedimientos",
+        "instituciones",
+        "otro",
+    ]
     difficulties = ["easy", "medium", "hard"]
 
     while True:
         print("-" * 40)
         question = input("\nPregunta (o 'done' para terminar): ").strip()
 
-        if question.lower() == 'done':
+        if question.lower() == "done":
             break
 
         if len(question) < 10:
@@ -58,7 +66,9 @@ def main():
             continue
 
         # Respuesta esperada (opcional)
-        gold_answer = input("Respuesta esperada (opcional, Enter para omitir): ").strip()
+        gold_answer = input(
+            "Respuesta esperada (opcional, Enter para omitir): "
+        ).strip()
         gold_answer = gold_answer if gold_answer else None
 
         # Categoría
@@ -77,7 +87,7 @@ def main():
             expected_sources=expected_sources,
             gold_answer=gold_answer,
             category=category,
-            difficulty=difficulty
+            difficulty=difficulty,
         )
 
         dataset.add(item)

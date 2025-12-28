@@ -2,6 +2,7 @@
 Generator - Generación de respuestas con Gemini y citas (JSON estructurado)
 Soporta múltiples modelos y streaming.
 """
+
 import json
 import re
 import time
@@ -99,7 +100,7 @@ Responde SOLO con el JSON estructurado:"""
         query: str,
         context_chunks: list[dict],
         max_tokens: int = 1024,
-        model_override: str | None = None
+        model_override: str | None = None,
     ) -> dict:
         """
         Genera una respuesta estructurada basada en la query y el contexto.
@@ -127,7 +128,7 @@ Responde SOLO con el JSON estructurado:"""
                 generation_config=genai.types.GenerationConfig(
                     max_output_tokens=max_tokens,
                     temperature=0.2,  # Más baja para JSON consistente
-                )
+                ),
             )
             raw_response = response.text
         except Exception as e:
@@ -141,8 +142,7 @@ Responde SOLO con el JSON estructurado:"""
 
         # Enriquecer con metadata de chunks
         enriched_citations = self._enrich_citations(
-            parsed.get("citations", []),
-            context_chunks
+            parsed.get("citations", []), context_chunks
         )
 
         # Calcular confidence basado en scores de retrieval si no viene
@@ -158,7 +158,7 @@ Responde SOLO con el JSON estructurado:"""
             "sources_used": len(context_chunks),
             "model": used_model,
             "latency_ms": latency_ms,
-            "raw_llm_response": raw_response if parsed.get("_parse_error") else None
+            "raw_llm_response": raw_response if parsed.get("_parse_error") else None,
         }
 
     def generate_stream(
@@ -166,7 +166,7 @@ Responde SOLO con el JSON estructurado:"""
         query: str,
         context_chunks: list[dict],
         max_tokens: int = 1024,
-        model_override: str | None = None
+        model_override: str | None = None,
     ) -> Generator[str, None, dict]:
         """
         Genera respuesta en modo streaming (para UX mejorada).
@@ -190,7 +190,7 @@ Responde SOLO con el JSON estructurado:"""
                     max_output_tokens=max_tokens,
                     temperature=0.2,
                 ),
-                stream=True
+                stream=True,
             )
 
             full_response = ""
@@ -204,8 +204,7 @@ Responde SOLO con el JSON estructurado:"""
             latency_ms = int((time.time() - start_time) * 1000)
 
             enriched_citations = self._enrich_citations(
-                parsed.get("citations", []),
-                context_chunks
+                parsed.get("citations", []), context_chunks
             )
 
             if parsed.get("confidence") is None:
@@ -241,8 +240,8 @@ Responde SOLO con el JSON estructurado:"""
         # Primero: buscar bloques de código markdown (prioridad más alta)
         # Estos patrones capturan el contenido DENTRO de los backticks
         markdown_patterns = [
-            r'```json\s*([\s\S]*?)\s*```',  # ```json ... ```
-            r'```\s*([\s\S]*?)\s*```',      # ``` ... ```
+            r"```json\s*([\s\S]*?)\s*```",  # ```json ... ```
+            r"```\s*([\s\S]*?)\s*```",  # ``` ... ```
         ]
 
         for pattern in markdown_patterns:
@@ -256,7 +255,7 @@ Responde SOLO con el JSON estructurado:"""
 
         # Segundo: buscar JSON directo (sin markdown)
         # Buscar el objeto JSON más externo
-        json_match = re.search(r'\{[\s\S]*\}', text)
+        json_match = re.search(r"\{[\s\S]*\}", text)
         if json_match:
             try:
                 return json.loads(json_match.group(0))
@@ -269,13 +268,11 @@ Responde SOLO con el JSON estructurado:"""
             "citations": [],
             "confidence": 0.5,
             "refusal": False,
-            "_parse_error": True
+            "_parse_error": True,
         }
 
     def _enrich_citations(
-        self,
-        llm_citations: list[dict],
-        context_chunks: list[dict]
+        self, llm_citations: list[dict], context_chunks: list[dict]
     ) -> list[dict]:
         """
         Enriquece las citas del LLM con metadata de los chunks.
@@ -288,7 +285,7 @@ Responde SOLO con el JSON estructurado:"""
                 "source": citation.get("source", "Desconocido"),
                 "page": citation.get("page"),
                 "source_uri": None,
-                "relevance_score": 0.0
+                "relevance_score": 0.0,
             }
 
             # Buscar chunk correspondiente para agregar metadata
@@ -296,7 +293,9 @@ Responde SOLO con el JSON estructurado:"""
             for chunk in context_chunks:
                 chunk_source = chunk["metadata"].get("source", "").lower()
                 if source_name in chunk_source or chunk_source in source_name:
-                    enriched_citation["source_uri"] = chunk["metadata"].get("source_path")
+                    enriched_citation["source_uri"] = chunk["metadata"].get(
+                        "source_path"
+                    )
                     enriched_citation["relevance_score"] = chunk.get("score", 0)
                     break
 
@@ -305,13 +304,15 @@ Responde SOLO con el JSON estructurado:"""
         # Si no hay citas del LLM, crear citas de los chunks usados
         if not enriched and context_chunks:
             for chunk in context_chunks[:3]:  # Top 3 chunks
-                enriched.append({
-                    "quote": chunk["content"][:150] + "...",
-                    "source": chunk["metadata"].get("source", "Desconocido"),
-                    "page": chunk["metadata"].get("page"),
-                    "source_uri": chunk["metadata"].get("source_path"),
-                    "relevance_score": chunk.get("score", 0)
-                })
+                enriched.append(
+                    {
+                        "quote": chunk["content"][:150] + "...",
+                        "source": chunk["metadata"].get("source", "Desconocido"),
+                        "page": chunk["metadata"].get("page"),
+                        "source_uri": chunk["metadata"].get("source_path"),
+                        "relevance_score": chunk.get("score", 0),
+                    }
+                )
 
         return enriched
 
@@ -333,7 +334,9 @@ Responde SOLO con el JSON estructurado:"""
         confidence = min(avg_score + quality_bonus, 1.0)
         return round(confidence, 2)
 
-    def _error_response(self, error_msg: str, elapsed: float, model: str | None = None) -> dict:
+    def _error_response(
+        self, error_msg: str, elapsed: float, model: str | None = None
+    ) -> dict:
         """Respuesta en caso de error"""
         return {
             "answer": f"Error al generar respuesta: {error_msg}",
@@ -344,5 +347,5 @@ Responde SOLO con el JSON estructurado:"""
             "sources_used": 0,
             "model": model or self.default_model_name,
             "latency_ms": int(elapsed * 1000),
-            "error": error_msg
+            "error": error_msg,
         }

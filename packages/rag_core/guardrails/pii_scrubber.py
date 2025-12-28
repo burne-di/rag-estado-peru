@@ -1,6 +1,7 @@
 """
 PII Scrubber - Detecta y remueve información personal identificable
 """
+
 import re
 from dataclasses import dataclass
 
@@ -8,6 +9,7 @@ from dataclasses import dataclass
 @dataclass
 class PIIMatch:
     """Representa una coincidencia de PII"""
+
     type: str
     value: str
     start: int
@@ -31,34 +33,34 @@ class PIIScrubber:
     # Patrones de PII comunes en Perú
     PATTERNS = {
         "dni": {
-            "pattern": r'\b\d{8}\b',
+            "pattern": r"\b\d{8}\b",
             "replacement": "[DNI_REDACTED]",
-            "description": "DNI peruano (8 dígitos)"
+            "description": "DNI peruano (8 dígitos)",
         },
         "ruc": {
-            "pattern": r'\b(10|15|17|20)\d{9}\b',
+            "pattern": r"\b(10|15|17|20)\d{9}\b",
             "replacement": "[RUC_REDACTED]",
-            "description": "RUC peruano (11 dígitos)"
+            "description": "RUC peruano (11 dígitos)",
         },
         "phone": {
-            "pattern": r'\b(?:\+51\s?)?(?:9\d{8}|[1-9]\d{6})\b',
+            "pattern": r"\b(?:\+51\s?)?(?:9\d{8}|[1-9]\d{6})\b",
             "replacement": "[PHONE_REDACTED]",
-            "description": "Teléfono peruano"
+            "description": "Teléfono peruano",
         },
         "email": {
-            "pattern": r'\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b',
+            "pattern": r"\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b",
             "replacement": "[EMAIL_REDACTED]",
-            "description": "Correo electrónico"
+            "description": "Correo electrónico",
         },
         "credit_card": {
-            "pattern": r'\b(?:\d{4}[-\s]?){3}\d{4}\b',
+            "pattern": r"\b(?:\d{4}[-\s]?){3}\d{4}\b",
             "replacement": "[CARD_REDACTED]",
-            "description": "Número de tarjeta"
+            "description": "Número de tarjeta",
         },
         "ip_address": {
-            "pattern": r'\b(?:\d{1,3}\.){3}\d{1,3}\b',
+            "pattern": r"\b(?:\d{1,3}\.){3}\d{1,3}\b",
             "replacement": "[IP_REDACTED]",
-            "description": "Dirección IP"
+            "description": "Dirección IP",
         },
     }
 
@@ -70,8 +72,7 @@ class PIIScrubber:
         """
         if patterns_to_use:
             self.active_patterns = {
-                k: v for k, v in self.PATTERNS.items()
-                if k in patterns_to_use
+                k: v for k, v in self.PATTERNS.items() if k in patterns_to_use
             }
         else:
             self.active_patterns = self.PATTERNS.copy()
@@ -93,13 +94,15 @@ class PIIScrubber:
 
         for pii_type, pattern in self.compiled_patterns.items():
             for match in pattern.finditer(text):
-                matches.append(PIIMatch(
-                    type=pii_type,
-                    value=match.group(),
-                    start=match.start(),
-                    end=match.end(),
-                    replacement=self.active_patterns[pii_type]["replacement"]
-                ))
+                matches.append(
+                    PIIMatch(
+                        type=pii_type,
+                        value=match.group(),
+                        start=match.start(),
+                        end=match.end(),
+                        replacement=self.active_patterns[pii_type]["replacement"],
+                    )
+                )
 
         # Ordenar por posición
         matches.sort(key=lambda m: m.start)
@@ -121,9 +124,7 @@ class PIIScrubber:
         scrubbed = text
         for match in reversed(matches):
             scrubbed = (
-                scrubbed[:match.start] +
-                match.replacement +
-                scrubbed[match.end:]
+                scrubbed[: match.start] + match.replacement + scrubbed[match.end :]
             )
 
         return scrubbed, matches

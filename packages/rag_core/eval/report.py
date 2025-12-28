@@ -1,6 +1,7 @@
 """
 Generación de reportes de evaluación
 """
+
 import json
 from datetime import datetime
 from pathlib import Path
@@ -31,16 +32,15 @@ class EvalReporter:
             "thresholds": {
                 "hit_at_k_target": 0.70,
                 "faithfulness_target": 0.70,
-                "passed": self._check_thresholds()
-            }
+                "passed": self._check_thresholds(),
+            },
         }
         return report
 
     def _check_thresholds(self) -> bool:
         """Verifica si se cumplen los umbrales mínimos"""
         return (
-            self.metrics.hit_at_k_rate >= 0.70 and
-            self.metrics.avg_faithfulness >= 0.70
+            self.metrics.hit_at_k_rate >= 0.70 and self.metrics.avg_faithfulness >= 0.70
         )
 
     def to_markdown(self) -> str:
@@ -70,10 +70,10 @@ class EvalReporter:
 | Parámetro | Valor |
 |-----------|-------|
 | Total Items | {m.total_items} |
-| Modelo | {self.metadata.get('model', 'N/A')} |
-| Embedding | {self.metadata.get('embedding_model', 'N/A')} |
-| Chunk Size | {self.metadata.get('chunk_size', 'N/A')} |
-| Top K | {self.metadata.get('top_k', 'N/A')} |
+| Modelo | {self.metadata.get("model", "N/A")} |
+| Embedding | {self.metadata.get("embedding_model", "N/A")} |
+| Chunk Size | {self.metadata.get("chunk_size", "N/A")} |
+| Top K | {self.metadata.get("top_k", "N/A")} |
 
 ## Detalle por Pregunta
 
@@ -130,13 +130,13 @@ class EvalReporter:
 
         # Guardar JSON
         json_path = output_dir / f"{name_prefix}_{timestamp}.json"
-        with open(json_path, 'w', encoding='utf-8') as f:
+        with open(json_path, "w", encoding="utf-8") as f:
             json.dump(self.to_json(), f, ensure_ascii=False, indent=2)
         print(f"✓ Reporte JSON guardado: {json_path}")
 
         # Guardar Markdown
         md_path = output_dir / f"{name_prefix}_{timestamp}.md"
-        with open(md_path, 'w', encoding='utf-8') as f:
+        with open(md_path, "w", encoding="utf-8") as f:
             f.write(self.to_markdown())
         print(f"✓ Reporte Markdown guardado: {md_path}")
 
