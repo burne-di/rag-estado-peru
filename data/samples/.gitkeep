@@ -1,0 +1,3 @@
+# Este directorio contiene PDFs de ejemplo para demos y tests.
+# Coloca aquí documentos públicos que puedan ir al repositorio.
+# Los documentos sensibles deben ir en data/raw/ (ignorado por git).

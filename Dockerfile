@@ -15,10 +15,12 @@ RUN pip install --no-cache-dir -r requirements.txt
 COPY packages/ ./packages/
 COPY services/ ./services/
 COPY scripts/ ./scripts/
-COPY data/samples/ ./data/samples/
 
 # Crear directorios necesarios
-RUN mkdir -p data/raw data/processed data/chroma
+RUN mkdir -p data/raw data/processed data/chroma data/samples
+
+# Copiar samples si existen (opcional para demos)
+COPY data/samples/. ./data/samples/
 
 # Variables de entorno por defecto
 ENV PYTHONPATH=/app
