@@ -92,7 +92,7 @@ class RAGPipeline:
         print("\n3. Generando embeddings y almacenando...")
         added = self.vector_store.add_chunks(chunks)
 
-        print(f"\n=== Ingesta completada ===")
+        print("\n=== Ingesta completada ===")
         print(f"   Documentos procesados: {len(set(d.metadata['source'] for d in documents))}")
         print(f"   Páginas procesadas: {len(documents)}")
         print(f"   Chunks indexados: {added}")

@@ -1,14 +1,15 @@
 """
 Document Loaders - Carga y extracción de texto de PDFs y HTML
 """
-from pathlib import Path
-from dataclasses import dataclass
 import hashlib
 import re
-import pdfplumber
-from bs4 import BeautifulSoup
+from dataclasses import dataclass
+from pathlib import Path
 from urllib.parse import urlparse
+
+import pdfplumber
 import requests
+from bs4 import BeautifulSoup
 
 
 @dataclass
@@ -98,7 +99,7 @@ class HTMLLoader:
         try:
             result = urlparse(source)
             return all([result.scheme in ('http', 'https'), result.netloc])
-        except:
+        except (ValueError, AttributeError):
             return False
 
     def load(self) -> list[Document]:

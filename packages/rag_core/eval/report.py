@@ -4,6 +4,7 @@ Generación de reportes de evaluación
 import json
 from datetime import datetime
 from pathlib import Path
+
 from .metrics import AggregatedMetrics
 
 
@@ -84,7 +85,7 @@ class EvalReporter:
             question = r.question[:40] + "..." if len(r.question) > 40 else r.question
             md += f"| {i} | {question} | {hit} | {r.faithfulness:.2f} | {r.confidence:.2f} | {r.latency_ms}ms |\n"
 
-        md += f"""
+        md += """
 ## Análisis
 
 ### Fortalezas
@@ -108,7 +109,7 @@ class EvalReporter:
         if m.refusal_rate >= 0.3:
             md += "- ⚠️ Alta tasa de rechazo - revisar cobertura documental\n"
 
-        md += f"""
+        md += """
 ---
 *Generado automáticamente por RAG Estado Peru Evaluator*
 """

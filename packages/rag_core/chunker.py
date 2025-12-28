@@ -1,9 +1,10 @@
 """
 Text Chunker - División de documentos en chunks con metadata
 """
-from dataclasses import dataclass
-from .loaders import Document
 import uuid
+from dataclasses import dataclass
+
+from .loaders import Document
 
 
 @dataclass

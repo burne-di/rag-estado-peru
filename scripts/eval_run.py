@@ -1,15 +1,15 @@
 """
 Script para ejecutar evaluación offline del sistema RAG
 """
+import argparse
 import sys
 from pathlib import Path
-import argparse
 
 # Agregar root al path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from packages.rag_core import RAGPipeline
-from packages.rag_core.eval import EvalDataset, RAGMetrics, EvalReporter
+from packages.rag_core.eval import EvalDataset, EvalReporter, RAGMetrics
 
 
 def main():
@@ -95,7 +95,7 @@ def main():
     print("RESULTADOS DE EVALUACIÓN")
     print("=" * 50)
 
-    print(f"\n📊 Métricas Agregadas:")
+    print("\n📊 Métricas Agregadas:")
     print(f"   Hit@{args.top_k} Rate:     {aggregated.hit_at_k_rate:.2%}")
     print(f"   Avg Precision:    {aggregated.avg_precision:.2%}")
     print(f"   Avg Recall:       {aggregated.avg_recall:.2%}")

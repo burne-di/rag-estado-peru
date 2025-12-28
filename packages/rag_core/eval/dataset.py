@@ -2,8 +2,8 @@
 Dataset de evaluación para RAG
 """
 import json
+from dataclasses import asdict, dataclass
 from pathlib import Path
-from dataclasses import dataclass, asdict
 from typing import Optional
 
 

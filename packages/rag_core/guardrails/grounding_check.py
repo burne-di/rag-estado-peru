@@ -1,9 +1,9 @@
 """
 Grounding Check - Verifica que la respuesta esté fundamentada en el contexto
 """
+import re
 from dataclasses import dataclass
 from difflib import SequenceMatcher
-import re
 
 
 @dataclass

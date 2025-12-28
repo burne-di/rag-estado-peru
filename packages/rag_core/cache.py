@@ -4,8 +4,10 @@ Evita llamadas repetidas a la API para preguntas similares.
 """
 import hashlib
 import json
+import re
 import threading
 import time
+import unicodedata
 from dataclasses import asdict, dataclass
 from pathlib import Path
 from typing import Optional
@@ -62,9 +64,6 @@ class ResponseCache:
     def _normalize_question(self, question: str) -> str:
         """Normaliza la pregunta para mejor matching"""
         # Lowercase, remover espacios extra, remover puntuación
-        import unicodedata
-        import re
-
         text = question.lower().strip()
         # Remover acentos
         text = unicodedata.normalize('NFD', text)

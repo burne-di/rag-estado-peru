@@ -11,7 +11,6 @@ import google.generativeai as genai
 
 from .config import get_settings
 
-
 # Prompt que fuerza output JSON estructurado
 SYSTEM_PROMPT = """Eres un asistente experto en normativa pública peruana.
 Tu tarea es responder preguntas usando la información de los documentos proporcionados.

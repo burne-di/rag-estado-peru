@@ -27,7 +27,6 @@ from .schemas import (  # noqa: E402
     StatsResponse,
 )
 
-
 # Pipeline global
 pipeline: RAGPipeline | None = None
 
@@ -257,6 +256,7 @@ async def root():
 
 if __name__ == "__main__":
     import uvicorn
+
     from packages.rag_core.config import get_settings
 
     settings = get_settings()

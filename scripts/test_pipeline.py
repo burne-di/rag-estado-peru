@@ -22,7 +22,7 @@ def main():
 
     # 2. Verificar stats
     stats = pipeline.get_stats()
-    print(f"\n2. Estado actual:")
+    print("\n2. Estado actual:")
     print(f"   - Chunks indexados: {stats['total_chunks']}")
     print(f"   - Modelo embeddings: {stats['embedding_model']}")
     print(f"   - Modelo LLM: {stats['llm_model']}")

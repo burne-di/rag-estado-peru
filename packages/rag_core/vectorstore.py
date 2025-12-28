@@ -1,10 +1,12 @@
 """
 Vector Store - Embeddings y ChromaDB
 """
-from sentence_transformers import SentenceTransformer
+from pathlib import Path
+
 import chromadb
 from chromadb.config import Settings as ChromaSettings
-from pathlib import Path
+from sentence_transformers import SentenceTransformer
+
 from .chunker import Chunk
 from .config import get_settings
 
