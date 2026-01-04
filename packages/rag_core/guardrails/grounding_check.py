@@ -64,7 +64,9 @@ class GroundingChecker:
         print(f"   [Grounding] Chunks recibidos: {len(context_chunks)}")
         for i, chunk in enumerate(context_chunks[:2]):
             content = chunk.get("content", "")
-            print(f"   [Grounding] Chunk {i}: content_len={len(content)}, page={chunk.get('metadata', {}).get('page')}")
+            print(
+                f"   [Grounding] Chunk {i}: content_len={len(content)}, page={chunk.get('metadata', {}).get('page')}"
+            )
             if content:
                 print(f"   [Grounding] Chunk {i} preview: {content[:100]}...")
 
@@ -160,7 +162,9 @@ class GroundingChecker:
 
         # Estrategia 1.5: Buscar términos técnicos/específicos individualmente
         # Si al menos 2 términos clave están en el contexto, dar crédito parcial
-        individual_matches = sum(1 for p in key_phrases if len(p.split()) == 1 and p in full_context)
+        individual_matches = sum(
+            1 for p in key_phrases if len(p.split()) == 1 and p in full_context
+        )
         if individual_matches >= 2:
             phrase_match_ratio = max(phrase_match_ratio, 0.4)
 

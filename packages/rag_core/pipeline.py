@@ -227,10 +227,14 @@ class RAGPipeline:
             grounding_result = self.grounding_checker.check(
                 answer=response["answer"], context_chunks=relevant_chunks
             )
-            print(f"   📊 Grounding: score={grounding_result.score:.2f}, is_grounded={grounding_result.is_grounded}")
+            print(
+                f"   📊 Grounding: score={grounding_result.score:.2f}, is_grounded={grounding_result.is_grounded}"
+            )
             print(f"   📊 Grounding details: {grounding_result.details}")
             if grounding_result.ungrounded_claims:
-                print(f"   ⚠️ Ungrounded claims: {grounding_result.ungrounded_claims[:2]}")
+                print(
+                    f"   ⚠️ Ungrounded claims: {grounding_result.ungrounded_claims[:2]}"
+                )
 
             # Evaluar nuevamente con grounding score
             post_refusal = self.refusal_policy.evaluate(
@@ -238,7 +242,9 @@ class RAGPipeline:
                 grounding_score=grounding_result.score,
                 query=question,
             )
-            print(f"   📊 Post-refusal: should_refuse={post_refusal.should_refuse}, reason={post_refusal.reason}")
+            print(
+                f"   📊 Post-refusal: should_refuse={post_refusal.should_refuse}, reason={post_refusal.reason}"
+            )
 
             if post_refusal.should_refuse:
                 # Si el LLM dio una respuesta con buena confianza, no rechazarla
@@ -248,7 +254,9 @@ class RAGPipeline:
 
                 # Si el LLM está seguro (confidence >= 0.5) y tiene citas, confiar en él
                 if llm_confidence >= 0.5 and has_citations:
-                    print(f"   ✅ Aceptando respuesta: LLM confidence={llm_confidence}, citations={has_citations}")
+                    print(
+                        f"   ✅ Aceptando respuesta: LLM confidence={llm_confidence}, citations={has_citations}"
+                    )
                     response["guardrails"] = {
                         "grounding_score": grounding_result.score,
                         "grounding_details": grounding_result.details,

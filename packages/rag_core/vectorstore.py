@@ -103,16 +103,22 @@ class VectorStore:
         settings = get_settings()
         top_k = top_k or settings.top_k_results
 
-        print(f"   [VectorStore.search] hybrid_search={settings.hybrid_search}, query='{query[:50]}...'")
+        print(
+            f"   [VectorStore.search] hybrid_search={settings.hybrid_search}, query='{query[:50]}...'"
+        )
 
         vector_results = self._vector_search(query, top_k)
         if not settings.hybrid_search:
             print("   [VectorStore.search] Usando SOLO vector search")
             return vector_results
 
-        print(f"   [VectorStore.search] Usando HYBRID search (vector_weight={settings.vector_weight}, keyword_weight={settings.keyword_weight})")
+        print(
+            f"   [VectorStore.search] Usando HYBRID search (vector_weight={settings.vector_weight}, keyword_weight={settings.keyword_weight})"
+        )
         keyword_results = self._keyword_search(query, top_k)
-        print(f"   [VectorStore.search] keyword_results: {len(keyword_results)} matches")
+        print(
+            f"   [VectorStore.search] keyword_results: {len(keyword_results)} matches"
+        )
 
         merged = self._merge_results(
             vector_results,
@@ -121,7 +127,9 @@ class VectorStore:
             settings.vector_weight,
             settings.keyword_weight,
         )
-        print(f"   [VectorStore.search] merged_results: top scores = {[r.get('score', 0) for r in merged[:3]]}")
+        print(
+            f"   [VectorStore.search] merged_results: top scores = {[r.get('score', 0) for r in merged[:3]]}"
+        )
         return merged
 
     def _vector_search(self, query: str, top_k: int) -> list[dict]:
@@ -219,7 +227,9 @@ class VectorStore:
 
         print(f"   [_keyword_search] Total scored matches: {len(scored)}")
         if scored:
-            print(f"   [_keyword_search] Top match score: {scored[0]['score'] if scored else 0}")
+            print(
+                f"   [_keyword_search] Top match score: {scored[0]['score'] if scored else 0}"
+            )
         scored.sort(key=lambda x: x["score"], reverse=True)
         return scored[:top_k]
 
@@ -274,7 +284,9 @@ class VectorStore:
         combined = list(merged.values())
         combined.sort(key=lambda x: x["score"], reverse=True)
 
-        print(f"   [_merge_results] Top 3 after merge: {[(c.get('metadata', {}).get('page'), c.get('score'), c.get('exact_match')) for c in combined[:3]]}")
+        print(
+            f"   [_merge_results] Top 3 after merge: {[(c.get('metadata', {}).get('page'), c.get('score'), c.get('exact_match')) for c in combined[:3]]}"
+        )
 
         return combined[:top_k]
 

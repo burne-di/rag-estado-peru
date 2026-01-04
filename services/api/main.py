@@ -407,7 +407,9 @@ async def debug_llm(request: QueryRequest):
             "routing": {
                 "provider": routing_decision.provider if routing_decision else None,
                 "model": routing_decision.model if routing_decision else None,
-                "complexity_score": routing_decision.complexity_score if routing_decision else None,
+                "complexity_score": routing_decision.complexity_score
+                if routing_decision
+                else None,
             },
             "chunks_count": len(chunks),
             "chunks_scores": [c.get("score", 0) for c in chunks[:5]],
@@ -427,6 +429,7 @@ async def debug_llm(request: QueryRequest):
         }
     except Exception as e:
         import traceback
+
         return {
             "error": str(e),
             "traceback": traceback.format_exc(),

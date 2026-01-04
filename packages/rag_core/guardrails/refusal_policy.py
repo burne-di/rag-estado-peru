@@ -120,7 +120,11 @@ class RefusalPolicy:
 
         # Check 3: ¿La respuesta está grounded?
         if grounding_score is not None and grounding_score < self.min_grounding_score:
-            if query and self._is_summary_intent(query) and avg_score >= self.min_relevance_score:
+            if (
+                query
+                and self._is_summary_intent(query)
+                and avg_score >= self.min_relevance_score
+            ):
                 return RefusalResult(
                     should_refuse=False,
                     reason=RefusalReason.NONE,

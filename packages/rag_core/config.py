@@ -58,7 +58,9 @@ class Settings(BaseSettings):
         super().__init__(**kwargs)
         # Force re-read HYBRID_SEARCH from env to ensure correct boolean parsing
         self.hybrid_search = _parse_bool_env("HYBRID_SEARCH", default=True)
-        print(f"[Config] hybrid_search={self.hybrid_search} (from env: {os.environ.get('HYBRID_SEARCH', 'not set')})")
+        print(
+            f"[Config] hybrid_search={self.hybrid_search} (from env: {os.environ.get('HYBRID_SEARCH', 'not set')})"
+        )
 
 
 @lru_cache
