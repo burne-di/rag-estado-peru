@@ -2,7 +2,7 @@
 
 ### Sistema de Preguntas y Respuestas con citas verificables sobre normativa pública peruana
 
-[![CI](https://github.com/Memory-Solutions/rag-estado-peru/actions/workflows/ci.yml/badge.svg)](https://github.com/Ruben-Q/rag-estado-peru/actions/workflows/ci.yml)
+[![CI](https://github.com/Ruben-Q/rag-estado-peru/actions/workflows/ci.yml/badge.svg)](https://github.com/Ruben-Q/rag-estado-peru/actions/workflows/ci.yml)
 [![Python 3.11](https://img.shields.io/badge/python-3.11-blue.svg)](https://www.python.org/downloads/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
@@ -37,9 +37,9 @@ git clone https://github.com/Ruben-Q/rag-estado-peru.git
 cd rag-estado-peru
 pip install -e .
 
-# 2. Configurar API key de Gemini
+# 2. Configurar API keys (al menos una)
 cp .env.example .env
-# Editar .env con tu GOOGLE_API_KEY
+# Editar .env con GROQ_API_KEY y/o GOOGLE_API_KEY
 
 # 3. Ingestar documentos
 python scripts/ingest.py
@@ -91,11 +91,13 @@ contados desde el día siguiente de la notificación del acto administrativo.
           │                   │                    │
    ┌──────┴──────┐    ┌───────┴───────┐    ┌───────┴───────┐
    ▼             ▼    ▼               ▼    ▼               ▼
-┌──────────┐  ┌──────────┐  ┌─────────────┐  ┌─────────────┐
-│ ChromaDB │  │  Gemini  │  │  Sentence   │  │   Cache     │
-│  Vector  │  │2.5 Flash │  │ Transformers│  │   (JSON)    │
-│  Store   │  │  / Lite  │  │ (Embeddings)│  │             │
-└──────────┘  └──────────┘  └─────────────┘  └─────────────┘
+┌──────────┐  ┌──────────────────┐  ┌─────────────┐  ┌─────────────┐
+│ ChromaDB │  │   Multi-Provider │  │  Sentence   │  │   Cache     │
+│  Vector  │  │ ┌──────┐┌──────┐ │  │ Transformers│  │   (JSON)    │
+│  Store   │  │ │ Groq ││Gemini│ │  │ (Embeddings)│  │             │
+└──────────┘  │ └──────┘└──────┘ │  └─────────────┘  └─────────────┘
+              │   (auto-fallback)│
+              └──────────────────┘
 ```
 
 ### Flujo de Consulta con Guardrails
@@ -123,10 +125,15 @@ rag-estado-peru/
 │   ├── loaders.py               # Carga PDF y HTML
 │   ├── chunker.py               # División en chunks con overlap
 │   ├── vectorstore.py           # ChromaDB + embeddings
-│   ├── generator.py             # Gemini con output JSON + streaming
+│   ├── generator.py             # Multi-provider generator + streaming
 │   ├── pipeline.py              # Orquestador principal
 │   ├── cache.py                 # Response cache con TTL
 │   ├── router.py                # Model routing por complejidad
+│   ├── providers/               # Abstracción multi-provider LLM
+│   │   ├── base.py              # Interfaz abstracta LLMProvider
+│   │   ├── groq.py              # Provider Groq (Llama 3.3)
+│   │   ├── gemini.py            # Provider Gemini
+│   │   └── factory.py           # Factory con auto-detect y fallback
 │   ├── guardrails/              # Validación y seguridad
 │   │   ├── grounding_check.py   # Anti-alucinación
 │   │   ├── refusal_policy.py    # Política de rechazo
@@ -176,12 +183,21 @@ rag-estado-peru/
 
 | Componente | Tecnología | Justificación |
 |------------|------------|---------------|
-| **LLM** | Google Gemini 2.5 Flash | Tier gratuito, buen soporte español |
+| **LLM** | Groq (Llama 3.3) + Gemini 2.5 Flash | Multi-provider con fallback automático |
 | **Embeddings** | sentence-transformers (multilingual) | 100% local, sin costos |
 | **Vector Store** | ChromaDB | Simple, persistencia local |
 | **API** | FastAPI + Pydantic | Async, validación automática |
 | **Contenedores** | Docker + Compose | Reproducibilidad |
 | **CI/CD** | GitHub Actions | Lint, tests, build |
+
+### Providers LLM Soportados
+
+| Provider | Modelos | Velocidad | Notas |
+|----------|---------|-----------|-------|
+| **Groq** | llama-3.3-70b, llama-3.1-8b | Ultra-rápido | Recomendado (LPU inference) |
+| **Gemini** | gemini-2.5-flash, gemini-2.0-flash-lite | Rápido | Tier gratuito disponible |
+
+El sistema selecciona automáticamente el provider disponible y hace fallback si uno falla.
 
 ---
 
@@ -346,6 +362,7 @@ make eval         # Ejecutar evaluación
 
 | Feature | Descripción | Beneficio |
 |---------|-------------|-----------|
+| **Multi-Provider** | Groq + Gemini con fallback automático | Alta disponibilidad, evita rate limits |
 | **Response Cache** | Caché LRU con TTL de 24h | ~40% ahorro en llamadas API |
 | **Model Routing** | Selección automática de modelo según complejidad | Queries simples → modelo económico |
 | **Streaming UX** | Server-Sent Events para respuestas en tiempo real | Mejor experiencia de usuario |

@@ -10,7 +10,7 @@ from pathlib import Path
 from .cache import get_cache
 from .chunker import chunk_documents
 from .config import get_settings
-from .generator import GeminiGenerator
+from .generator import MultiProviderGenerator
 from .guardrails import GroundingChecker, PIIScrubber, RefusalPolicy
 from .loaders import PDFLoader, load_documents_from_directory
 from .router import get_router
@@ -46,7 +46,7 @@ class RAGPipeline:
     ):
         self.settings = get_settings()
         self.vector_store = VectorStore()
-        self.generator = GeminiGenerator()
+        self.generator = MultiProviderGenerator()
 
         # Cache para respuestas
         self.enable_cache = enable_cache
@@ -190,25 +190,32 @@ class RAGPipeline:
                     },
                 }
 
-        # 4. Model routing (seleccionar modelo óptimo)
+        # 4. Model routing (seleccionar modelo y provider óptimos)
         selected_model = None
+        selected_provider = None
         routing_info = None
         if self.enable_routing:
             routing_decision = self.router.route(question, relevant_chunks)
             selected_model = routing_decision.model
+            selected_provider = routing_decision.provider
             routing_info = {
                 "selected_model": routing_decision.model,
+                "selected_provider": routing_decision.provider,
                 "tier": routing_decision.tier.name,
                 "complexity_score": routing_decision.complexity_score,
                 "reason": routing_decision.reason,
             }
             print(
-                f"   🔀 Routing: {routing_decision.model} (score={routing_decision.complexity_score:.2f})"
+                f"   🔀 Routing: {routing_decision.provider}/{routing_decision.model} "
+                f"(score={routing_decision.complexity_score:.2f})"
             )
 
         # 5. Generar respuesta
         response = self.generator.generate(
-            question, relevant_chunks, model_override=selected_model
+            question,
+            relevant_chunks,
+            model_override=selected_model,
+            provider_override=selected_provider,
         )
 
         # Agregar info de routing
@@ -266,10 +273,18 @@ class RAGPipeline:
 
     def get_stats(self) -> dict:
         """Retorna estadísticas del pipeline"""
+        from .providers import get_available_providers
+
+        try:
+            llm_model = self.generator.model_name
+        except Exception:
+            llm_model = "unknown"
+
         stats = {
             "total_chunks": self.vector_store.count(),
             "embedding_model": self.settings.embedding_model,
-            "llm_model": self.settings.gemini_model,
+            "llm_model": llm_model,
+            "llm_provider": self.settings.llm_provider,
             "chunk_size": self.settings.chunk_size,
             "top_k": self.settings.top_k_results,
             "guardrails_enabled": self.enable_guardrails,
@@ -281,7 +296,11 @@ class RAGPipeline:
             stats["cache_stats"] = self.cache.get_stats()
 
         if self.enable_routing:
-            stats["available_models"] = ["gemini-2.0-flash-lite", "gemini-2.5-flash"]
+            stats["available_providers"] = get_available_providers()
+            stats["available_models"] = {
+                "groq": ["llama-3.1-8b-instant", "llama-3.3-70b-versatile"],
+                "gemini": ["gemini-2.0-flash-lite", "gemini-2.5-flash"],
+            }
 
         return stats
 

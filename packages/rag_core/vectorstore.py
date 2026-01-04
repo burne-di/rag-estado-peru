@@ -3,6 +3,8 @@ Vector Store - Embeddings y ChromaDB
 """
 
 from pathlib import Path
+import re
+import unicodedata
 
 import chromadb
 from chromadb.config import Settings as ChromaSettings
@@ -101,26 +103,33 @@ class VectorStore:
         settings = get_settings()
         top_k = top_k or settings.top_k_results
 
-        # Generar embedding de la query
+        vector_results = self._vector_search(query, top_k)
+        if not settings.hybrid_search:
+            return vector_results
+
+        keyword_results = self._keyword_search(query, top_k)
+        return self._merge_results(
+            vector_results,
+            keyword_results,
+            top_k,
+            settings.vector_weight,
+            settings.keyword_weight,
+        )
+
+    def _vector_search(self, query: str, top_k: int) -> list[dict]:
+        """Busca por similitud vectorial en ChromaDB."""
         query_embedding = self.embedding_model.embed_query(query)
 
-        # Buscar en ChromaDB
         results = self.collection.query(
             query_embeddings=[query_embedding],
             n_results=top_k,
             include=["documents", "metadatas", "distances"],
         )
 
-        # Formatear resultados
         formatted_results = []
         for i in range(len(results["ids"][0])):
             distance = results["distances"][0][i]
-            # Convertir distancia coseno a score de similitud (0-1)
-            # ChromaDB con coseno retorna: distance = 1 - cosine_similarity
-            # Por lo tanto: score = 1 - distance
-            # Esto da valores entre 0 (opuesto) y 1 (idéntico)
             score = max(0.0, min(1.0, 1 - distance))
-
             formatted_results.append(
                 {
                     "chunk_id": results["ids"][0][i],
@@ -128,10 +137,205 @@ class VectorStore:
                     "metadata": results["metadatas"][0][i],
                     "distance": distance,
                     "score": score,
+                    "score_vector": score,
+                    "score_keyword": 0.0,
                 }
             )
-
         return formatted_results
+
+    def _keyword_search(self, query: str, top_k: int) -> list[dict]:
+        """Busca por coincidencias de palabras clave."""
+        normalized_query = self._normalize_text(query)
+        tokens = self._tokenize(normalized_query)
+        phrases = self._extract_phrases(tokens)
+        if not tokens:
+            return []
+
+        scored = []
+        total = self.collection.count()
+        batch_size = 500
+        offset = 0
+
+        while offset < total:
+            data = self.collection.get(
+                include=["documents", "metadatas"], limit=batch_size, offset=offset
+            )
+            ids = data.get("ids", [])
+            documents = data.get("documents", [])
+            metadatas = data.get("metadatas", [])
+
+            for idx, doc in enumerate(documents):
+                doc_text = self._normalize_text(doc or "")
+                if not doc_text:
+                    continue
+
+                score = 0.0
+                token_hits = 0
+                for token in tokens:
+                    if token in doc_text:
+                        hits = doc_text.count(token)
+                        score += hits
+                        token_hits += 1
+
+                phrase_matches = 0
+                for phrase in phrases:
+                    if phrase in doc_text:
+                        score += len(tokens) * 1.5
+                        phrase_matches += 1
+
+                exact_match = normalized_query in doc_text
+                if exact_match:
+                    score += len(tokens) * 2.0
+
+                if score > 0:
+                    scored.append(
+                        {
+                            "chunk_id": ids[idx],
+                            "content": doc,
+                            "metadata": metadatas[idx],
+                            "distance": None,
+                            "score": score,
+                            "score_vector": 0.0,
+                            "score_keyword": score,
+                            "exact_match": exact_match,
+                            "token_hits": token_hits,
+                            "phrase_matches": phrase_matches,
+                        }
+                    )
+
+            offset += batch_size
+
+        scored.sort(key=lambda x: x["score"], reverse=True)
+        return scored[:top_k]
+
+    def _merge_results(
+        self,
+        vector_results: list[dict],
+        keyword_results: list[dict],
+        top_k: int,
+        vector_weight: float,
+        keyword_weight: float,
+    ) -> list[dict]:
+        """Combina resultados de vector y keyword."""
+        merged = {}
+        exact_hits = [r for r in keyword_results if r.get("exact_match")]
+
+        max_keyword = max((r["score_keyword"] for r in keyword_results), default=0.0)
+        for res in keyword_results:
+            keyword_norm = res["score_keyword"] / max_keyword if max_keyword else 0.0
+            res["score_keyword"] = keyword_norm
+            res["score"] = keyword_weight * keyword_norm
+            merged[res["chunk_id"]] = res
+
+        for res in vector_results:
+            chunk_id = res["chunk_id"]
+            vector_score = res["score_vector"]
+            if chunk_id in merged:
+                keyword_score = merged[chunk_id]["score_keyword"]
+                merged[chunk_id]["score_vector"] = vector_score
+                merged[chunk_id]["score"] = (vector_weight * vector_score) + (
+                    keyword_weight * keyword_score
+                )
+            else:
+                res["score"] = vector_weight * vector_score
+                merged[chunk_id] = res
+
+        combined = list(merged.values())
+        combined.sort(key=lambda x: x["score"], reverse=True)
+
+        if exact_hits:
+            exact_hits = sorted(
+                exact_hits, key=lambda x: x["score_keyword"], reverse=True
+            )
+            exact_ids = {r["chunk_id"] for r in exact_hits}
+            remainder = [r for r in combined if r["chunk_id"] not in exact_ids]
+            combined = exact_hits + remainder
+
+        return combined[:top_k]
+
+    def _normalize_text(self, text: str) -> str:
+        """Normaliza texto para comparaciones simples."""
+        normalized = unicodedata.normalize("NFD", text)
+        normalized = "".join(
+            char for char in normalized if unicodedata.category(char) != "Mn"
+        )
+        normalized = normalized.lower()
+        normalized = re.sub(r"[^a-z0-9]+", " ", normalized)
+        return re.sub(r"\s+", " ", normalized).strip()
+
+    def _tokenize(self, text: str) -> list[str]:
+        """Tokeniza texto en palabras relevantes."""
+        tokens = re.findall(r"\b\w+\b", text)
+        stopwords = {
+            "de",
+            "del",
+            "la",
+            "el",
+            "los",
+            "las",
+            "un",
+            "una",
+            "unos",
+            "unas",
+            "y",
+            "o",
+            "u",
+            "que",
+            "como",
+            "para",
+            "por",
+            "sobre",
+            "en",
+            "al",
+            "se",
+            "es",
+        }
+        roman = {
+            "i",
+            "ii",
+            "iii",
+            "iv",
+            "v",
+            "vi",
+            "vii",
+            "viii",
+            "ix",
+            "x",
+            "xi",
+            "xii",
+            "xiii",
+            "xiv",
+            "xv",
+            "xvi",
+            "xvii",
+            "xviii",
+            "xix",
+            "xx",
+        }
+        filtered = []
+        for token in tokens:
+            if token in stopwords:
+                continue
+            if len(token) >= 3 or token in roman:
+                filtered.append(token)
+        return filtered
+
+    def _extract_phrases(self, tokens: list[str]) -> list[str]:
+        """Construye bigramas y trigramas para boosting."""
+        phrases = []
+        for i in range(len(tokens) - 1):
+            phrases.append(f"{tokens[i]} {tokens[i + 1]}")
+        for i in range(len(tokens) - 2):
+            phrases.append(f"{tokens[i]} {tokens[i + 1]} {tokens[i + 2]}")
+        # Deduplicar manteniendo orden
+        seen = set()
+        deduped = []
+        for phrase in phrases:
+            if phrase in seen:
+                continue
+            seen.add(phrase)
+            deduped.append(phrase)
+        return deduped
 
     def count(self) -> int:
         """Retorna el número de chunks en el store"""

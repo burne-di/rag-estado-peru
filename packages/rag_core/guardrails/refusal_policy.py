@@ -4,6 +4,7 @@ Refusal Policy - Política de rechazo cuando no hay evidencia suficiente
 
 from dataclasses import dataclass
 from enum import Enum
+import unicodedata
 
 
 class RefusalReason(Enum):
@@ -68,7 +69,7 @@ class RefusalPolicy:
     def __init__(
         self,
         min_relevance_score: float = 0.1,  # Bajado para ser menos estricto
-        min_grounding_score: float = 0.3,  # Bajado para ser menos estricto
+        min_grounding_score: float = 0.2,  # Bajado para ser menos estricto
         min_chunks_required: int = 1,
     ):
         """
@@ -119,6 +120,13 @@ class RefusalPolicy:
 
         # Check 3: ¿La respuesta está grounded?
         if grounding_score is not None and grounding_score < self.min_grounding_score:
+            if query and self._is_summary_intent(query) and avg_score >= self.min_relevance_score:
+                return RefusalResult(
+                    should_refuse=False,
+                    reason=RefusalReason.NONE,
+                    message="",
+                    suggestion=None,
+                )
             return RefusalResult(
                 should_refuse=True,
                 reason=RefusalReason.UNGROUNDED,
@@ -154,8 +162,31 @@ class RefusalPolicy:
             "poema",
         ]
 
-        query_lower = query.lower()
-        return any(pattern in query_lower for pattern in off_topic_patterns)
+        query_norm = self._normalize_text(query)
+        return any(pattern in query_norm for pattern in off_topic_patterns)
+
+    def _is_summary_intent(self, query: str) -> bool:
+        """Detecta intencion de resumen o panorama general."""
+        summary_patterns = [
+            "temas principales",
+            "resumen",
+            "panorama",
+            "vision general",
+            "que trata",
+            "de que trata",
+            "descripcion general",
+            "sintesis",
+        ]
+        query_norm = self._normalize_text(query)
+        return any(pattern in query_norm for pattern in summary_patterns)
+
+    def _normalize_text(self, text: str) -> str:
+        """Normaliza texto para comparaciones simples."""
+        normalized = unicodedata.normalize("NFD", text)
+        normalized = "".join(
+            char for char in normalized if unicodedata.category(char) != "Mn"
+        )
+        return normalized.lower()
 
     def format_refusal_response(self, result: RefusalResult) -> dict:
         """

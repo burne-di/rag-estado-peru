@@ -20,9 +20,13 @@ dependencies = [
     "pydantic>=2.5.0",
     "pydantic-settings>=2.1.0",
     "python-dotenv>=1.0.0",
+    # LLM Providers
     "google-generativeai>=0.3.0",
+    "openai>=1.0.0",  # Para Groq (usa API compatible con OpenAI)
+    # Vector Store & Embeddings
     "chromadb>=0.4.22",
     "sentence-transformers>=2.2.2",
+    # Document Processing
     "pypdf>=3.17.0",
     "pdfplumber>=0.10.3",
     "beautifulsoup4>=4.12.0",

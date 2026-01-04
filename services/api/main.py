@@ -20,6 +20,7 @@ from packages.rag_core import RAGPipeline, __version__  # noqa: E402
 
 from .schemas import (  # noqa: E402
     Citation,
+    DebugSearchRequest,
     HealthResponse,
     IngestRequest,
     IngestResponse,
@@ -115,6 +116,93 @@ async def query(request: QueryRequest):
         )
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/debug/chunks", tags=["Debug"])
+async def debug_chunks(request: QueryRequest):
+    """
+    Devuelve los chunks recuperados para una query (debug).
+    """
+    if pipeline is None:
+        raise HTTPException(status_code=503, detail="Pipeline no inicializado")
+
+    normalized = request.question
+    try:
+        from packages.rag_core.pipeline import normalize_query
+
+        normalized = normalize_query(request.question)
+    except Exception:
+        pass
+
+    top_k = request.top_k or pipeline.settings.top_k_results
+    chunks = pipeline.vector_store.search(normalized, top_k=top_k)
+    return {
+        "question": request.question,
+        "normalized": normalized,
+        "top_k": top_k,
+        "chunks": [
+            {
+                "score": c.get("score", 0),
+                "score_vector": c.get("score_vector"),
+                "score_keyword": c.get("score_keyword"),
+                "exact_match": c.get("exact_match"),
+                "token_hits": c.get("token_hits"),
+                "phrase_matches": c.get("phrase_matches"),
+                "content": c.get("content", ""),
+                "source": c.get("metadata", {}).get("source"),
+                "page": c.get("metadata", {}).get("page"),
+                "source_path": c.get("metadata", {}).get("source_path"),
+            }
+            for c in chunks
+        ],
+    }
+
+
+@app.post("/debug/pdf-search", tags=["Debug"])
+async def debug_pdf_search(request: DebugSearchRequest):
+    """
+    Busca un termino literal dentro de un PDF y devuelve paginas con match.
+    """
+    from packages.rag_core.loaders import PDFLoader
+
+    try:
+        loader = PDFLoader(request.file_path)
+        documents = loader.load()
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+    term = request.term.strip()
+    if not term:
+        raise HTTPException(status_code=400, detail="term vacio")
+
+    term_lower = term.lower()
+    results = []
+    for doc in documents:
+        content = doc.content or ""
+        content_lower = content.lower()
+        idx = content_lower.find(term_lower)
+        if idx == -1:
+            continue
+
+        start = max(0, idx - 120)
+        end = min(len(content), idx + 200)
+        snippet = content[start:end]
+        results.append(
+            {
+                "page": doc.metadata.get("page"),
+                "source": doc.metadata.get("source"),
+                "snippet": snippet,
+            }
+        )
+        if request.max_results and len(results) >= request.max_results:
+            break
+
+    return {
+        "file_path": request.file_path,
+        "term": request.term,
+        "matches": results,
+        "total_matches": len(results),
+    }
 
 
 @app.post("/query/stream", tags=["RAG"])
@@ -239,6 +327,18 @@ async def clear_index():
 
     pipeline.clear()
     return {"status": "success", "message": "Vector store limpiado"}
+
+
+@app.delete("/cache/clear", tags=["System"])
+async def clear_cache():
+    """Limpia el cache de respuestas"""
+    if pipeline is None:
+        raise HTTPException(status_code=503, detail="Pipeline no inicializado")
+    if not pipeline.enable_cache or pipeline.cache is None:
+        return {"status": "success", "message": "Cache no habilitado"}
+
+    pipeline.cache.clear()
+    return {"status": "success", "message": "Cache limpiado"}
 
 
 # Servir interfaz web

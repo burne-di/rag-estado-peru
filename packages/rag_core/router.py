@@ -1,9 +1,9 @@
 """
-Model Router - Selecciona el modelo óptimo según la complejidad de la query.
+Model Router - Selecciona el modelo y provider óptimo según la complejidad de la query.
 
-Estrategia:
-- Queries simples → gemini-2.0-flash-lite (más rápido, más barato)
-- Queries complejas → gemini-2.5-flash (más capaz)
+Soporta múltiples providers:
+- Groq: llama-3.3-70b (complejo) / llama-3.1-8b (simple)
+- Gemini: gemini-2.5-flash (complejo) / gemini-2.0-flash-lite (simple)
 
 Criterios de complejidad:
 - Longitud de la pregunta
@@ -15,13 +15,29 @@ Criterios de complejidad:
 import re
 from dataclasses import dataclass
 from enum import Enum
+from typing import Optional
+
+from .providers import get_available_providers
 
 
 class ModelTier(Enum):
     """Niveles de modelo disponibles"""
 
-    LITE = "gemini-2.0-flash-lite"  # Rápido, económico
-    STANDARD = "gemini-2.5-flash"  # Balanceado (default actual)
+    LITE = "lite"  # Rápido, económico
+    STANDARD = "standard"  # Balanceado, más capaz
+
+
+# Mapeo de provider -> modelos por tier
+PROVIDER_MODELS = {
+    "groq": {
+        ModelTier.LITE: "openai/gpt-oss-120b",
+        ModelTier.STANDARD: "openai/gpt-oss-120b",
+    },
+    "gemini": {
+        ModelTier.LITE: "gemini-2.0-flash-lite",
+        ModelTier.STANDARD: "gemini-2.5-flash",
+    },
+}
 
 
 @dataclass
@@ -29,6 +45,7 @@ class RoutingDecision:
     """Resultado del routing"""
 
     model: str
+    provider: str
     tier: ModelTier
     complexity_score: float  # 0.0 a 1.0
     reason: str
@@ -36,7 +53,7 @@ class RoutingDecision:
 
 class ModelRouter:
     """
-    Router inteligente que selecciona el modelo óptimo
+    Router inteligente que selecciona el modelo y provider óptimo
     basándose en la complejidad de la query.
     """
 
@@ -71,15 +88,17 @@ class ModelRouter:
     ]
 
     def __init__(
-        self, complexity_threshold: float = 0.5, default_model: str = "gemini-2.5-flash"
+        self,
+        complexity_threshold: float = 0.5,
+        preferred_provider: Optional[str] = None,
     ):
         """
         Args:
             complexity_threshold: Umbral para usar modelo estándar (0.0-1.0)
-            default_model: Modelo por defecto si no se puede determinar
+            preferred_provider: Provider preferido ("groq", "gemini", o None para auto)
         """
         self.complexity_threshold = complexity_threshold
-        self.default_model = default_model
+        self.preferred_provider = preferred_provider
 
         # Compilar patrones
         self.complex_patterns = [
@@ -89,38 +108,67 @@ class ModelRouter:
             re.compile(p, re.IGNORECASE) for p in self.SIMPLE_INDICATORS
         ]
 
+    def _get_active_provider(self) -> str:
+        """Obtiene el provider activo"""
+        if self.preferred_provider:
+            return self.preferred_provider
+
+        # Auto-detect: preferir Groq si está disponible
+        available = get_available_providers()
+        if "groq" in available:
+            return "groq"
+        elif "gemini" in available:
+            return "gemini"
+        else:
+            raise ValueError("No hay providers disponibles")
+
     def route(
-        self, query: str, context_chunks: list[dict] | None = None
+        self,
+        query: str,
+        context_chunks: Optional[list[dict]] = None,
+        provider_override: Optional[str] = None,
     ) -> RoutingDecision:
         """
-        Determina qué modelo usar para una query.
+        Determina qué modelo y provider usar para una query.
 
         Args:
             query: Pregunta del usuario
-            context_chunks: Chunks recuperados (opcional, para análisis adicional)
+            context_chunks: Chunks recuperados (opcional)
+            provider_override: Forzar un provider específico
 
         Returns:
-            RoutingDecision con el modelo seleccionado
+            RoutingDecision con el modelo y provider seleccionado
         """
         complexity_score = self._calculate_complexity(query, context_chunks)
 
+        # Determinar provider
+        provider = provider_override or self._get_active_provider()
+
+        # Determinar tier basado en complejidad
         if complexity_score >= self.complexity_threshold:
-            return RoutingDecision(
-                model=ModelTier.STANDARD.value,
-                tier=ModelTier.STANDARD,
-                complexity_score=complexity_score,
-                reason=self._get_complexity_reason(query, complexity_score),
-            )
+            tier = ModelTier.STANDARD
+            reason = self._get_complexity_reason(query, complexity_score)
         else:
-            return RoutingDecision(
-                model=ModelTier.LITE.value,
-                tier=ModelTier.LITE,
-                complexity_score=complexity_score,
-                reason="Query simple, usando modelo lite",
-            )
+            tier = ModelTier.LITE
+            reason = "Query simple, usando modelo lite"
+
+        # Obtener modelo específico del provider
+        model = PROVIDER_MODELS.get(provider, {}).get(tier)
+
+        if not model:
+            # Fallback si el provider no tiene el tier
+            model = list(PROVIDER_MODELS.get(provider, {}).values())[0]
+
+        return RoutingDecision(
+            model=model,
+            provider=provider,
+            tier=tier,
+            complexity_score=complexity_score,
+            reason=reason,
+        )
 
     def _calculate_complexity(
-        self, query: str, context_chunks: list[dict] | None = None
+        self, query: str, context_chunks: Optional[list[dict]] = None
     ) -> float:
         """
         Calcula un score de complejidad para la query.
@@ -180,7 +228,7 @@ class ModelRouter:
 
 
 # Singleton global
-_router_instance: ModelRouter | None = None
+_router_instance: Optional[ModelRouter] = None
 
 
 def get_router() -> ModelRouter:

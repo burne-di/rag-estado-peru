@@ -8,9 +8,16 @@ from pydantic_settings import BaseSettings
 
 
 class Settings(BaseSettings):
-    # Gemini
-    google_api_key: str
+    # LLM Providers (al menos uno debe estar configurado)
+    google_api_key: str = ""  # Gemini
+    groq_api_key: str = ""  # Groq
+
+    # Modelos por defecto
     gemini_model: str = "gemini-2.5-flash"
+    groq_model: str = "llama-3.3-70b-versatile"
+
+    # Provider preferido ("groq", "gemini", o "auto" para fallback automático)
+    llm_provider: str = "groq"
 
     # Embeddings
     embedding_model: str = "paraphrase-multilingual-MiniLM-L12-v2"
@@ -22,6 +29,11 @@ class Settings(BaseSettings):
     chunk_size: int = 512
     chunk_overlap: int = 50
     top_k_results: int = 5
+
+    # Hybrid Search (vector + keyword)
+    hybrid_search: bool = True
+    vector_weight: float = 0.7
+    keyword_weight: float = 0.3
 
     # API
     api_host: str = "0.0.0.0"

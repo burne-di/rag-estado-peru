@@ -69,12 +69,21 @@ class StatsResponse(BaseModel):
     total_chunks: int
     embedding_model: str
     llm_model: str
+    llm_provider: str | None = None
     chunk_size: int
     top_k: int
     cache_enabled: bool = False
     cache_stats: CacheStats | None = None
     routing_enabled: bool = False
-    available_models: list[str] | None = None
+    available_models: dict[str, list[str]] | None = None
+
+
+class DebugSearchRequest(BaseModel):
+    """Request para buscar texto literal en un PDF"""
+
+    file_path: str
+    term: str
+    max_results: int | None = Field(10, ge=1, le=100)
 
 
 class HealthResponse(BaseModel):
